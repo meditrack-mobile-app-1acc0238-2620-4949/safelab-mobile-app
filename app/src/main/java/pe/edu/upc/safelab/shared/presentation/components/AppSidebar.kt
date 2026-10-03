@@ -42,7 +42,7 @@ fun AppSidebar(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val modules = AppModule.values().toList()
+    val modules = AppModule.values().filter { it != AppModule.IDENTITY_ACCESS }
 
     Column(
         modifier = modifier
