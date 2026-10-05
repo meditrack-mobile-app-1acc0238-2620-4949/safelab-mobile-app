@@ -42,6 +42,7 @@ import java.time.Instant
 import pe.edu.upc.safelab.boundedcontext.sensormonitoring.domain.model.BatchStatus
 import pe.edu.upc.safelab.boundedcontext.sensormonitoring.domain.model.CalibrationStatus
 import pe.edu.upc.safelab.boundedcontext.sensormonitoring.domain.model.ReadingStatus
+import pe.edu.upc.safelab.boundedcontext.sensormonitoring.domain.model.Sensor
 import pe.edu.upc.safelab.boundedcontext.sensormonitoring.domain.model.SensorReading
 import pe.edu.upc.safelab.boundedcontext.sensormonitoring.domain.model.SensorStatus
 import pe.edu.upc.safelab.boundedcontext.sensormonitoring.domain.model.ThresholdRule
@@ -93,6 +94,19 @@ fun elapsedLabel(from: String, now: Instant): String {
         minutes < 24 * 60 -> "${minutes / 60}h ${(minutes % 60).toString().padStart(2, '0')}m ago"
         else -> "${minutes / (24 * 60)}d ago"
     }
+}
+
+/** Allowed range of a sensor as text: "2.0 °C – 8.0 °C", or "Closed – Open" for doors. */
+fun targetRangeLabel(sensor: Sensor): String {
+    val threshold = sensor.threshold
+    return "${sensor.type.formatValue(threshold.minValue, sensor.unit)} – ${sensor.type.formatValue(threshold.maxValue, sensor.unit)}"
+}
+
+/** Connection of a sensor as text: "Online" when it is active, otherwise its device status. */
+fun connectionLabel(sensor: Sensor): String = when (sensor.status) {
+    SensorStatus.ACTIVE -> "Online"
+    SensorStatus.DISCONNECTED -> "Offline"
+    else -> sensor.status.label
 }
 
 // ---------- Layout ----------
