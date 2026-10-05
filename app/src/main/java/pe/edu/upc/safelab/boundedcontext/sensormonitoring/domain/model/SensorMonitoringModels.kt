@@ -1,5 +1,8 @@
 package pe.edu.upc.safelab.boundedcontext.sensormonitoring.domain.model
 
+import java.util.Locale
+import kotlin.math.roundToInt
+
 /**
  * Sensor Monitoring bounded context.
  * Sensors, their readings, threshold rules, calibrations and telemetry batches.
@@ -12,7 +15,14 @@ enum class SensorType(val label: String) {
     HUMIDITY("Humidity"),
     DOOR_STATUS("Door status"),
     VIBRATION("Vibration"),
-    ENERGY("Energy")
+    ENERGY("Energy");
+
+    /** Text shown for a reading value: "Closed"/"Open" for doors, the number with its unit otherwise. */
+    fun formatValue(value: Double, unit: String): String = when (this) {
+        DOOR_STATUS -> if (value >= 1.0) "Open" else "Closed"
+        HUMIDITY -> "${value.roundToInt()} $unit".trim()
+        else -> "${"%.1f".format(Locale.US, value)} $unit".trim()
+    }
 }
 
 /** Status of the device itself. */
