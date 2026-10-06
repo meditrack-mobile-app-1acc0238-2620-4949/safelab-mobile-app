@@ -21,10 +21,21 @@ fun SafeLabApp(
     isDarkTheme: Boolean,
     onThemeToggle: () -> Unit
 ) {
+    var isAuthenticated by rememberSaveable { mutableStateOf(false) }
     var selectedModuleName by rememberSaveable {
         mutableStateOf(AppModule.DASHBOARD_OVERVIEW.name)
     }
     var language by rememberSaveable { mutableStateOf("EN") }
+
+    if (!isAuthenticated) {
+        IdentityAccessEntryScreen(
+            onAuthenticated = {
+                isAuthenticated = true
+                selectedModuleName = AppModule.DASHBOARD_OVERVIEW.name
+            }
+        )
+        return
+    }
 
     val selectedModule = AppModule.valueOf(selectedModuleName)
 
@@ -32,7 +43,14 @@ fun SafeLabApp(
         selectedModule = selectedModule,
         language = language,
         isDarkTheme = isDarkTheme,
-        onModuleSelected = { selectedModuleName = it.name },
+        onModuleSelected = { module ->
+            if (module == AppModule.IDENTITY_ACCESS) {
+                isAuthenticated = false
+                selectedModuleName = AppModule.DASHBOARD_OVERVIEW.name
+            } else {
+                selectedModuleName = module.name
+            }
+        },
         onLanguageToggle = { language = if (language == "EN") "ES" else "EN" },
         onThemeToggle = onThemeToggle
     ) {
@@ -44,7 +62,7 @@ fun SafeLabApp(
             AppModule.EQUIPMENT_MAINTENANCE -> EquipmentMaintenanceEntryScreen()
             AppModule.REPORTING_COMPLIANCE -> ReportingComplianceEntryScreen()
             AppModule.AUDIT_TRACEABILITY -> AuditTraceabilityEntryScreen()
-            AppModule.IDENTITY_ACCESS -> IdentityAccessEntryScreen()
+            AppModule.IDENTITY_ACCESS -> Unit
         }
     }
 }

@@ -1,10 +1,16 @@
 package pe.edu.upc.safelab.boundedcontext.identityaccess.presentation.screens
 
 import androidx.compose.runtime.Composable
-import pe.edu.upc.safelab.shared.domain.model.AppModule
-import pe.edu.upc.safelab.shared.presentation.screens.ComingSoonScreen
+import androidx.compose.ui.Modifier
+import pe.edu.upc.safelab.boundedcontext.identityaccess.domain.model.AuthenticatedUser
 
 @Composable
-fun IdentityAccessEntryScreen() {
-    ComingSoonScreen(module = AppModule.IDENTITY_ACCESS)
+fun IdentityAccessEntryScreen(
+    onAuthenticated: (AuthenticatedUser) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LoginScreen(
+        onAuthenticated = onAuthenticated,
+        modifier = modifier
+    )
 }
