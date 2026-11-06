@@ -18,6 +18,9 @@ import pe.edu.upc.safelab.boundedcontext.identityaccess.data.repository.LocalIde
 import pe.edu.upc.safelab.boundedcontext.userprofiles.data.repository.UserProfilesRepository
 import pe.edu.upc.safelab.boundedcontext.userprofiles.domain.model.ProfileSaveResult
 import pe.edu.upc.safelab.boundedcontext.userprofiles.presentation.screens.UserProfileScreen
+import pe.edu.upc.safelab.boundedcontext.subscriptionbilling.data.repository.SubscriptionBillingRepository
+import pe.edu.upc.safelab.boundedcontext.subscriptionbilling.presentation.screens.SubscriptionBillingScreen
+import pe.edu.upc.safelab.boundedcontext.subscriptionbilling.presentation.screens.BillingDocumentDetailScreen
 import pe.edu.upc.safelab.common.buildAvatarInitials
 import pe.edu.upc.safelab.common.buildDisplayName
 import pe.edu.upc.safelab.boundedcontext.monitoringorganization.presentation.screens.MonitoringOrganizationEntryScreen
@@ -30,11 +33,14 @@ import pe.edu.upc.safelab.shared.domain.model.MobileTab
 import pe.edu.upc.safelab.shared.presentation.layouts.AppShell
 import pe.edu.upc.safelab.shared.presentation.screens.MoreScreen
 
+private enum class AccountPage { PROFILE, BILLING }
+
 @Composable
 fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
     // Keep the session in memory: a restored UI state must not bypass login.
     var signedInUser by remember { mutableStateOf<AuthenticatedUser?>(null) }
-    var showProfile by remember { mutableStateOf(false) }
+    var accountPage by remember { mutableStateOf<AccountPage?>(null) }
+    var selectedBillingDocumentId by remember { mutableStateOf<String?>(null) }
     var selectedTabName by rememberSaveable { mutableStateOf(MobileTab.HOME.name) }
     var moreModuleName by rememberSaveable { mutableStateOf<String?>(null) }
     var language by rememberSaveable { mutableStateOf("EN") }
@@ -51,7 +57,8 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
                     UserProfilesRepository.ensureFor(user)
                     selectedTabName = MobileTab.HOME.name
                     moreModuleName = null
-                    showProfile = false
+                    accountPage = null
+                    selectedBillingDocumentId = null
                 },
                 onRegistered = { id, username, request ->
                     UserProfilesRepository.addPending(id, username, request.firstNames,
@@ -77,59 +84,98 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
         fun selectTab(tab: MobileTab) {
             if (tab == MobileTab.MORE) moreModuleName = null
             selectedTabName = tab.name
-            showProfile = false
+            accountPage = null
+            selectedBillingDocumentId = null
         }
         fun backToMore() { moreModuleName = null }
-
-        BackHandler(enabled = showProfile || selectedTab != MobileTab.HOME) {
-            if (showProfile) showProfile = false
-            else if (selectedTab == MobileTab.MORE && moreModule != null) backToMore()
-            else selectTab(MobileTab.HOME)
+        fun goBack() {
+            when {
+                accountPage == AccountPage.BILLING && selectedBillingDocumentId != null ->
+                    selectedBillingDocumentId = null
+                accountPage == AccountPage.BILLING -> accountPage = AccountPage.PROFILE
+                accountPage == AccountPage.PROFILE -> accountPage = null
+                selectedTab == MobileTab.MORE && moreModule != null -> backToMore()
+                else -> selectTab(MobileTab.HOME)
+            }
         }
+
+        BackHandler(enabled = accountPage != null || selectedTab != MobileTab.HOME) { goBack() }
 
         AppShell(
             selectedTab = selectedTab,
-            title = if (showProfile) tr(language, "My profile", "Mi perfil") else title,
+            title = when {
+                accountPage == AccountPage.BILLING && selectedBillingDocumentId != null ->
+                    tr(language, "Document details", "Detalle de documento")
+                accountPage == AccountPage.BILLING -> tr(language, "Subscription & billing", "Suscripción y pagos")
+                accountPage == AccountPage.PROFILE -> tr(language, "My profile", "Mi perfil")
+                else -> title
+            },
             language = language,
             isDarkTheme = isDarkTheme,
             onTabSelected = ::selectTab,
-            onBack = if (showProfile) { { showProfile = false } }
-                else if (selectedTab == MobileTab.MORE && moreModule != null) ::backToMore else null,
+            onBack = if (accountPage != null || (selectedTab == MobileTab.MORE && moreModule != null))
+                ::goBack else null,
             onLanguageToggle = { language = if (language == "EN") "ES" else "EN" },
             onThemeToggle = onThemeToggle,
             avatarInitials = buildAvatarInitials(profile.firstNames),
-            onProfileClick = { showProfile = true }
+            onProfileClick = {
+                accountPage = AccountPage.PROFILE
+                selectedBillingDocumentId = null
+            }
         ) {
-            if (showProfile) {
-                UserProfileScreen(profile = profile, language = language, onSave = { changes ->
-                    val auth = LocalIdentityAccessRepository()
-                    val result = UserProfilesRepository.save(profile.userId, changes) { email ->
-                        auth.isEmailAvailable(profile.userId, email)
-                    }
-                    if (result == ProfileSaveResult.SUCCESS) auth.updateEmail(profile.userId, changes.email)
-                    result
-                })
-            } else when (selectedTab) {
-                MobileTab.HOME -> DashboardOverviewEntryScreen()
-                MobileTab.SENSORS -> SensorMonitoringEntryScreen()
-                MobileTab.ALERTS -> AlertsIncidentsEntryScreen()
-                MobileTab.EQUIPMENT -> EquipmentMaintenanceEntryScreen()
-                MobileTab.MORE -> when (moreModule) {
-                    AppModule.MONITORING_ORGANIZATION -> MonitoringOrganizationEntryScreen()
-                    AppModule.REPORTING_COMPLIANCE -> ReportingComplianceEntryScreen()
-                    AppModule.AUDIT_TRACEABILITY -> AuditTraceabilityEntryScreen()
-                    else -> MoreScreen(
-                        language = language,
-                        onOpenModule = { moreModuleName = it.name },
-                        onOpenProfile = { showProfile = true },
-                        accountName = accountName,
-                        onSignOut = {
-                            moreModuleName = null
-                            selectedTabName = MobileTab.HOME.name
-                            signedInUser = null
-                            showProfile = false
+            when (accountPage) {
+                AccountPage.PROFILE -> UserProfileScreen(
+                    profile = profile,
+                    language = language,
+                    onOpenSubscription = { accountPage = AccountPage.BILLING },
+                    onSave = { changes ->
+                        val auth = LocalIdentityAccessRepository()
+                        val result = UserProfilesRepository.save(profile.userId, changes) { email ->
+                            auth.isEmailAvailable(profile.userId, email)
                         }
-                    )
+                        if (result == ProfileSaveResult.SUCCESS) auth.updateEmail(profile.userId, changes.email)
+                        result
+                    }
+                )
+                AccountPage.BILLING -> {
+                    val billing = SubscriptionBillingRepository.getForUser(profile.userId)
+                    val documentId = selectedBillingDocumentId
+                    if (documentId == null) {
+                        SubscriptionBillingScreen(
+                            billing = billing,
+                            language = language,
+                            onOpenDocument = { selectedBillingDocumentId = it }
+                        )
+                    } else {
+                        BillingDocumentDetailScreen(
+                            document = billing?.findDocument(documentId),
+                            language = language
+                        )
+                    }
+                }
+                null -> when (selectedTab) {
+                    MobileTab.HOME -> DashboardOverviewEntryScreen()
+                    MobileTab.SENSORS -> SensorMonitoringEntryScreen()
+                    MobileTab.ALERTS -> AlertsIncidentsEntryScreen()
+                    MobileTab.EQUIPMENT -> EquipmentMaintenanceEntryScreen()
+                    MobileTab.MORE -> when (moreModule) {
+                        AppModule.MONITORING_ORGANIZATION -> MonitoringOrganizationEntryScreen()
+                        AppModule.REPORTING_COMPLIANCE -> ReportingComplianceEntryScreen()
+                        AppModule.AUDIT_TRACEABILITY -> AuditTraceabilityEntryScreen()
+                        else -> MoreScreen(
+                            language = language,
+                            onOpenModule = { moreModuleName = it.name },
+                            onOpenProfile = { accountPage = AccountPage.PROFILE },
+                            accountName = accountName,
+                            onSignOut = {
+                                moreModuleName = null
+                                selectedTabName = MobileTab.HOME.name
+                                signedInUser = null
+                                accountPage = null
+                                selectedBillingDocumentId = null
+                            }
+                        )
+                    }
                 }
             }
         }
