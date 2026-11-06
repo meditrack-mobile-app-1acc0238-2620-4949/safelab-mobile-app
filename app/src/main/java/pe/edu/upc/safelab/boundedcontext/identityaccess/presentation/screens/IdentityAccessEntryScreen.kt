@@ -7,6 +7,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import pe.edu.upc.safelab.boundedcontext.identityaccess.domain.model.AuthenticatedUser
+import pe.edu.upc.safelab.boundedcontext.identityaccess.data.repository.RegistrationRequest
 
 @Composable
 fun IdentityAccessEntryScreen(
@@ -15,6 +16,7 @@ fun IdentityAccessEntryScreen(
     onLanguageToggle: () -> Unit,
     onThemeToggle: () -> Unit,
     onAuthenticated: (AuthenticatedUser) -> Unit,
+    onRegistered: (String, String, RegistrationRequest) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var mode by rememberSaveable { mutableStateOf("login") }
@@ -26,6 +28,7 @@ fun IdentityAccessEntryScreen(
             onLanguageToggle = onLanguageToggle,
             onThemeToggle = onThemeToggle,
             onBackToLogin = { mode = "login" },
+            onRegistered = onRegistered,
             modifier = modifier
         )
     } else {
