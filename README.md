@@ -19,7 +19,7 @@ This repository hosts the **mobile presentation layer** of the SafeLab ecosystem
 | Appearance | Light and dark themes |
 | Data integration | Local and in-memory sample data; shared REST API planned |
 
-> **Current development status:** SafeLab Mobile is in active development. Authentication, account registration, monitoring, and other existing screens currently run with local data. Account email verification, payment processing, remote device control, and production security controls require backend and external-service integrations. Do not use the current client to protect real clinical data or operate physical equipment.
+> **Current development status:** SafeLab Mobile is in active development. Authentication, account registration, monitoring, and other existing screens currently run with local data. Account email verification, payment processing, live remote device control, and production security controls require backend and external-service integrations. Do not use the current client to protect real clinical data or operate physical equipment.
 
 ## Getting started
 
@@ -70,7 +70,7 @@ app/
 
 ### Bounded Contexts
 
-The repository currently contains eight established BC implementations plus four empty module placeholders for upcoming feature branches.
+The repository contains twelve BC directories: eight initial mobile foundations and four additional AV2 feature implementations. All modules currently use demonstration data; they are not integrated with a production backend.
 
 | Bounded Context (target domain name) | Directory | Development status |
 | --- | --- | --- |
@@ -82,23 +82,31 @@ The repository currently contains eight established BC implementations plus four
 | Operational Dashboard & Insights | `dashboardoverview` | Existing foundation; domain rename planned |
 | Reporting & Analytics | `reportingcompliance` | Existing foundation; domain rename planned |
 | Audit & Traceability | `audittraceability` | Existing mobile foundation |
-| User Profile Management | `userprofiles` | Placeholder — feature pending |
-| Subscription & Billing | `subscriptionbilling` | Placeholder — feature pending |
-| Environmental Compliance Management | `environmentalcompliance` | Placeholder — feature pending |
-| Remote Control & Actuation | `remoteactuation` | Placeholder — feature pending |
+| User Profile Management | `userprofiles` | Editable personal information (offline demo) |
+| Subscription & Billing | `subscriptionbilling` | Read-only subscription and billing (offline demo) |
+| Environmental Compliance Management | `environmentalcompliance` | Environmental rules and evaluations (offline demo) |
+| Remote Control & Actuation | `remoteactuation` | Simulated commands, actuator status and history (offline demo) |
 
 **Why are some folders still using their earlier names?** This baseline deliberately preserves all working Kotlin package paths, Compose screens, navigation contracts, and repositories. Business naming will be synchronized with the web frontend and backend in a dedicated refactor, not by renaming folders before their dependencies are updated.
 
-Each new directory includes only a `.gitkeep` file, ensuring Git can retain the folder. Implementations, models, screens, routes, and service integrations will be introduced in their respective feature branches.
+The four AV2 feature contexts are now implemented with local sample data and their own domain/presentation code. Their future API contracts and persistence will be added after the mobile and web architectures are aligned.
 
 ## Planned capabilities
 
 - **User Profile Management:** view registered personal details; edit permitted fields through an explicit edit / save / cancel flow with input validation. Authentication credentials and access permissions remain owned by IAM.
 - **Subscription & Billing:** read-only access to the active subscription, payment history, upcoming invoice, and individual payment details. Account activation will follow an external email-verification-and-payment flow. The mobile interface will not directly change plans or execute payments.
 - **Environmental Compliance Management:** evaluate measured conditions against operational and preservation rules, record compliance status, and expose results to other modules.
-- **Remote Control & Actuation:** display and eventually submit authorized device-control requests through a backend service, with safety checks and auditability. No physical actuation is implemented in this baseline.
+- **Remote Control & Actuation:** view controllers and sample connectivity; simulate predefined commands with confirmation; inspect local command history and sample audit references. The UI rejects offline or unauthorized actions. **No physical command is transmitted.** Future API integration must enforce authorization and safety interlocks on the server and record tamper-resistant audits.
 
 Future integration will replace mock data with authenticated REST API calls. Business rules and authorization must be enforced by the backend, not only by the Android UI.
+
+## Remote actuation demonstration (AV2)
+
+1. Sign in with the local administrator account, then open **More → Remote Control & Actuation**.
+2. Visit **Devices**, choose a sample online controller and select an available action. The confirmation dialog explains that this is an **offline simulation**.
+3. Confirm the simulation to update the temporary device mode and create a `SIM-###` record; inspect it under **History**. Offline controllers and unauthorized roles cannot submit simulations.
+
+The seeded `CMD-079` to `CMD-081` references are fictitious records aligned with the existing Audit & Traceability sample. New `SIM-###` records are stored only in the local repository and are **not** appended to the Audit & Traceability BC yet. This cross-context audit integration belongs to the future backend. **Never use this version to operate clinical equipment.**
 
 ## Development workflow
 
@@ -111,7 +119,7 @@ Create a feature branch from the latest `develop`, keep the scope limited to one
 
 ## Roadmap
 
-1. Stabilize the shared BC catalog and progressively complete the missing mobile interfaces.
+1. Validate and refine the twelve mobile BC foundations and their bilingual UI.
 2. Align SafeLab Web and SafeLab Mobile around common domain contracts and terminology.
 3. Deliver backend APIs, persistence, IAM, subscription information, compliance evaluation, and authorized IoT integrations.
 4. Connect both clients to the backend, test the end-to-end flows, and prepare production-oriented deployment and demonstration.

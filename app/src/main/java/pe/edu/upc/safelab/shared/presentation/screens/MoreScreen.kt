@@ -105,6 +105,14 @@ fun MoreScreen(
         }
         item {
             MoreModuleRow(
+                title = if (spanish) "Control y actuación remotos" else "Remote Control & Actuation",
+                subtitle = if (spanish) "Dispositivos, simulación de comandos e historial" else "Devices, simulated commands and history",
+                icon = R.drawable.ic_nav_equipment,
+                onClick = { onOpenModule(AppModule.REMOTE_ACTUATION) }
+            )
+        }
+        item {
+            MoreModuleRow(
                 title = if (spanish) "Auditoría y trazabilidad" else "Audit & Traceability",
                 subtitle = if (spanish) "Registro de acciones y evidencias" else "Activity history and evidence trail",
                 icon = R.drawable.ic_nav_audit,

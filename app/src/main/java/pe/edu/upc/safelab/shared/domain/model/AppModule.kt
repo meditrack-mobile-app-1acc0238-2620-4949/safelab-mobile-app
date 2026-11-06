@@ -64,6 +64,14 @@ enum class AppModule(
         branch = "feature/av2-environmental-compliance",
         symbol = "✓"
     ),
+    REMOTE_ACTUATION(
+        titleEn = "Remote Control & Actuation",
+        titleEs = "Control y actuación remotos",
+        shortLabelEn = "Remote control",
+        shortLabelEs = "Control remoto",
+        branch = "feature/av2-remote-control-actuation",
+        symbol = "⌁"
+    ),
     AUDIT_TRACEABILITY(
         titleEn = "Audit & Traceability",
         titleEs = "Auditoría y trazabilidad",
