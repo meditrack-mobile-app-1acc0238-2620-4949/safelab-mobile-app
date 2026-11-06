@@ -18,8 +18,8 @@ object DashboardMockData {
         ),
         DashboardMetric(
             label = "Telemetry coverage",
-            value = "90%",
-            supportingText = "9/10 online sensors",
+            value = "75%",
+            supportingText = "9/12 active sensors (2 disconnected, 1 maintenance)",
             tone = DashboardTone.SUCCESS
         ),
         DashboardMetric(
@@ -100,13 +100,13 @@ object DashboardMockData {
 
     val risks = listOf(
         RiskSnapshotItem("Sensor deviations", "4"),
-        RiskSnapshotItem("Disconnected sensors", "1"),
+        RiskSnapshotItem("Disconnected sensors", "2"),
         RiskSnapshotItem("Open incidents", "4"),
         RiskSnapshotItem("Reports ready", "2")
     )
 
     val workflow = listOf(
-        WorkflowStep(1, "Sensor event", "10 records"),
+        WorkflowStep(1, "Sensor event", "12 registered sensors"),
         WorkflowStep(2, "Alert generated", "4 events"),
         WorkflowStep(3, "Incident opened", "4 cases"),
         WorkflowStep(4, "Audit persisted", "4 logs")

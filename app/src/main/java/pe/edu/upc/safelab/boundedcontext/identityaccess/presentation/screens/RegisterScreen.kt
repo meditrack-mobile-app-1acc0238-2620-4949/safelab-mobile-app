@@ -49,6 +49,7 @@ fun RegisterScreen(
     var confirmPassword by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var successMessage by remember { mutableStateOf<String?>(null) }
+    var generatedUsername by remember { mutableStateOf<String?>(null) }
 
     AuthContainer(modifier = modifier) {
         AuthTopActions(language, isDarkTheme, onLanguageToggle, onThemeToggle)
@@ -164,6 +165,7 @@ fun RegisterScreen(
                             val result = repository.register(request)
                             if (result.successful) {
                                 if (result.userId != null && result.generatedUsername != null) {
+                                    generatedUsername = result.generatedUsername
                                     onRegistered(result.userId, result.generatedUsername, request)
                                 }
                                 successMessage = tr(
@@ -174,7 +176,6 @@ fun RegisterScreen(
                             } else {
                                 errorMessage = tr(language, result.message, when(result.message) {
                                     "A user with this email already exists." -> "Ya existe un usuario con este correo."
-                                    "The generated username is already in use. Try another name combination." -> "El usuario generado ya está en uso. Intenta con otra combinación de nombres."
                                     else -> result.message
                                 })
                             }
@@ -220,7 +221,13 @@ fun RegisterScreen(
                 }
             },
             title = { Text(tr(language, "Verification required", "Verificación requerida"), fontWeight = FontWeight.Bold) },
-            text = { Text(successMessage.orEmpty()) }
+            text = {
+                Text(
+                    successMessage.orEmpty() + (generatedUsername?.let { username ->
+                        "\n\n" + tr(language, "Your permanent username: ", "Tu usuario permanente: ") + username
+                    } ?: "")
+                )
+            }
         )
     }
 }

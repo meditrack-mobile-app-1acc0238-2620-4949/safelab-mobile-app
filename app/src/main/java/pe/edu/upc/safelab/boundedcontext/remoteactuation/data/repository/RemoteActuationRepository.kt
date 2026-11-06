@@ -22,7 +22,7 @@ object RemoteActuationRepository {
             "NORMAL", listOf(ActuationAction.COOLING_BOOST, ActuationAction.NORMAL_COOLING), "2026-11-04T12:40:00"),
         ActuatorDevice("ctrl-003", "asset-007", "Vaccine Fridge", "Vaccines · San Gabriel Hospital Pharmacy", "EQ-HSP-001", DeviceAvailability.ONLINE,
             "NORMAL", listOf(ActuationAction.COOLING_BOOST, ActuationAction.NORMAL_COOLING), "2026-11-05T21:10:00"),
-        ActuatorDevice("ctrl-004", "asset-010", "PharmAndina Cold Room", "Cold Chain · PharmAndina", "EQ-PHA-001", DeviceAvailability.ONLINE,
+        ActuatorDevice("ctrl-004", "asset-010", "PharmAndina Cold Room", "Cold Chain · PharmAndina Cold Chain", "EQ-PHA-001", DeviceAvailability.ONLINE,
             "BOOST", listOf(ActuationAction.COOLING_BOOST, ActuationAction.NORMAL_COOLING), "2026-11-05T21:08:00"),
         ActuatorDevice("ctrl-a01", null, "Cold Chamber A-01", "Central Clinical Laboratory", "ACT-CEN-A01", DeviceAvailability.ONLINE,
             "NORMAL", listOf(ActuationAction.COOLING_BOOST, ActuationAction.NORMAL_COOLING), "2026-11-05T20:50:00"),
@@ -40,8 +40,8 @@ object RemoteActuationRepository {
             RemoteCommandStatus.CONFIRMED_SAMPLE, "Historical mock record; no hardware connection is active.",
             "Registro histórico simulado; no hay conexión activa con hardware."),
         RemoteCommand("CMD-079", "ctrl-freezer-b02", "Freezer B-02", ActuationAction.NORMAL_COOLING, "Dr. Maria Lopez", "2026-06-18T17:34:00",
-            RemoteCommandStatus.CANCELLED_SAMPLE, "Historical cancellation imported as demonstration data.",
-            "Cancelación histórica incorporada como datos de demostración.")
+            RemoteCommandStatus.CANCELLED_SAMPLE, "Return-to-normal cooling request was cancelled before execution; demonstration history only.",
+            "La orden de volver al enfriamiento normal se canceló antes de ejecutarse; historial de demostración.")
     )
 
     private val localCommands = mutableListOf<RemoteCommand>()

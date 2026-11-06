@@ -1,5 +1,6 @@
 package pe.edu.upc.safelab.boundedcontext.subscriptionbilling.data.repository
 
+import pe.edu.upc.safelab.common.DemoAccountIds
 import pe.edu.upc.safelab.boundedcontext.subscriptionbilling.domain.model.BillingAccount
 import pe.edu.upc.safelab.boundedcontext.subscriptionbilling.domain.model.BillingDocument
 import pe.edu.upc.safelab.boundedcontext.subscriptionbilling.domain.model.PaymentStatus
@@ -11,7 +12,7 @@ import pe.edu.upc.safelab.boundedcontext.subscriptionbilling.domain.model.Subscr
  * The values below are fictional and will be replaced by authenticated REST responses.
  */
 object SubscriptionBillingRepository {
-    private const val ADMIN_ID = "usr-admin-001"
+    private const val ADMIN_ID = DemoAccountIds.ADMIN_ID
 
     private fun paidReceipt(month: Int, number: String, reference: String): BillingDocument {
         val start = "2026-${month.toString().padStart(2, '0')}-06"

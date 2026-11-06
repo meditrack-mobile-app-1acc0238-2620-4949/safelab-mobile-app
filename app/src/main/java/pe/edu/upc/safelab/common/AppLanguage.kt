@@ -4,7 +4,6 @@ import pe.edu.upc.safelab.common.tr
 import pe.edu.upc.safelab.common.LocalAppLanguage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.compositionLocalOf
-import java.util.Locale
 
 val LocalAppLanguage = compositionLocalOf { "EN" }
 
@@ -37,11 +36,6 @@ fun buildDisplayName(firstNames: String, lastNames: String): String {
     return listOf(name, middle, surname, end).joinToString(" ").replace("  ", " ").trim()
 }
 
-fun buildGeneratedUsername(firstNames: String, lastNames: String): String {
-    val name = firstName(firstNames).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-    val surname = firstSurname(lastNames).replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
-    return "$name$surname"
-}
 
 fun buildAvatarInitials(firstNames: String): String {
     val parts = firstNames.trim().split(Regex("\\s+")).filter { it.isNotBlank() }

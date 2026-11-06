@@ -35,8 +35,8 @@ object EnvironmentalComplianceRepository {
     )
 
     val violations: List<EnvironmentalViolation> = listOf(
-        EnvironmentalViolation("V-210", "E-1006", "2026-11-05T21:40:00", null, null, ViolationSeverity.CRITICAL, "INC-001", "PCR reagent rack exceeded the temperature limit; review the linked incident.", "Los reactivos PCR superaron el límite de temperatura; revisar el incidente vinculado."),
-        EnvironmentalViolation("V-209", "E-1005", "2026-11-05T21:35:00", null, null, ViolationSeverity.WARNING, "INC-002", "Insulin storage humidity exceeded the configured maximum.", "La humedad de almacenamiento de insulina superó el máximo configurado."),
+        EnvironmentalViolation("V-210", "E-1006", "2026-06-19T03:10:00", null, null, ViolationSeverity.CRITICAL, "INC-001", "PCR reagent rack exceeded the temperature limit; review the linked incident.", "Los reactivos PCR superaron el límite de temperatura; revisar el incidente vinculado."),
+        EnvironmentalViolation("V-209", "E-1005", "2026-06-19T04:00:00", null, null, ViolationSeverity.WARNING, "INC-002", "Insulin storage humidity exceeded the configured maximum.", "La humedad de almacenamiento de insulina superó el máximo configurado."),
         EnvironmentalViolation("V-208", "E-0999", "2026-06-18T18:10:00", "2026-06-18T18:35:00", 25, ViolationSeverity.WARNING, null, "Temperature returned to the permitted range after 25 minutes.", "La temperatura volvió al rango permitido después de 25 minutos.")
     )
 

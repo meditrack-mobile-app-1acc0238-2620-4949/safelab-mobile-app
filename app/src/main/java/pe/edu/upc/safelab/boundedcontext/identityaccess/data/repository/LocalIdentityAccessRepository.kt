@@ -3,7 +3,7 @@ package pe.edu.upc.safelab.boundedcontext.identityaccess.data.repository
 import pe.edu.upc.safelab.boundedcontext.identityaccess.data.local.IdentityAccessMockData
 import pe.edu.upc.safelab.boundedcontext.identityaccess.domain.model.AuthenticatedUser
 import pe.edu.upc.safelab.common.buildDisplayName
-import pe.edu.upc.safelab.common.buildGeneratedUsername
+import pe.edu.upc.safelab.boundedcontext.identityaccess.domain.service.UserIdentifierGenerator
 
 sealed class AuthenticationResult {
     data class Success(val user: AuthenticatedUser) : AuthenticationResult()
@@ -79,12 +79,17 @@ class LocalIdentityAccessRepository {
             return RegistrationResult(false, "A user with this email already exists.")
         }
 
-        val username = buildGeneratedUsername(request.firstNames, request.lastNames)
-        if (accounts.any { it.username.equals(username, ignoreCase = true) }) {
-            return RegistrationResult(false, "The generated username is already in use. Try another name combination.")
-        }
+        // Names do not determine the username: two people may have identical names.
+        // Protect against the (extremely unlikely) in-memory collision as well.
+        var username: String
+        do {
+            username = UserIdentifierGenerator.generateUsername()
+        } while (accounts.any { it.username == username })
 
-        val accountId = "usr-${accounts.size + 1}"
+        var accountId: String
+        do {
+            accountId = UserIdentifierGenerator.generateUserId()
+        } while (accounts.any { it.id == accountId })
         accounts += LocalAccount(
             id = accountId,
             username = username,
