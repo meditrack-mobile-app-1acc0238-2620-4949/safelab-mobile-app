@@ -13,6 +13,7 @@ import pe.edu.upc.safelab.boundedcontext.audittraceability.presentation.screens.
 import pe.edu.upc.safelab.boundedcontext.dashboardoverview.presentation.screens.DashboardOverviewEntryScreen
 import pe.edu.upc.safelab.boundedcontext.equipmentmaintenance.presentation.screens.EquipmentMaintenanceEntryScreen
 import pe.edu.upc.safelab.boundedcontext.environmentalcompliance.presentation.screens.EnvironmentalComplianceEntryScreen
+import pe.edu.upc.safelab.boundedcontext.remoteactuation.presentation.screens.RemoteActuationEntryScreen
 import pe.edu.upc.safelab.boundedcontext.identityaccess.presentation.screens.IdentityAccessEntryScreen
 import pe.edu.upc.safelab.boundedcontext.identityaccess.domain.model.AuthenticatedUser
 import pe.edu.upc.safelab.boundedcontext.identityaccess.data.repository.LocalIdentityAccessRepository
@@ -167,6 +168,9 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
                             }
                         )
                         AppModule.ENVIRONMENTAL_COMPLIANCE -> EnvironmentalComplianceEntryScreen()
+                        AppModule.REMOTE_ACTUATION -> RemoteActuationEntryScreen(
+                            actor = accountName, role = sessionUser.role
+                        )
                         AppModule.AUDIT_TRACEABILITY -> AuditTraceabilityEntryScreen()
                         else -> MoreScreen(
                             language = language,
