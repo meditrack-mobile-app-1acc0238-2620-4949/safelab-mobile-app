@@ -1,6 +1,8 @@
 package pe.edu.upc.safelab.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -13,56 +15,87 @@ import pe.edu.upc.safelab.boundedcontext.identityaccess.presentation.screens.Ide
 import pe.edu.upc.safelab.boundedcontext.monitoringorganization.presentation.screens.MonitoringOrganizationEntryScreen
 import pe.edu.upc.safelab.boundedcontext.reportingcompliance.presentation.screens.ReportingComplianceEntryScreen
 import pe.edu.upc.safelab.boundedcontext.sensormonitoring.presentation.screens.SensorMonitoringEntryScreen
+import pe.edu.upc.safelab.common.LocalAppLanguage
+import pe.edu.upc.safelab.common.tr
 import pe.edu.upc.safelab.shared.domain.model.AppModule
+import pe.edu.upc.safelab.shared.domain.model.MobileTab
 import pe.edu.upc.safelab.shared.presentation.layouts.AppShell
+import pe.edu.upc.safelab.shared.presentation.screens.MoreScreen
 
 @Composable
-fun SafeLabApp(
-    isDarkTheme: Boolean,
-    onThemeToggle: () -> Unit
-) {
+fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
     var isAuthenticated by rememberSaveable { mutableStateOf(false) }
-    var selectedModuleName by rememberSaveable {
-        mutableStateOf(AppModule.DASHBOARD_OVERVIEW.name)
-    }
+    var selectedTabName by rememberSaveable { mutableStateOf(MobileTab.HOME.name) }
+    var moreModuleName by rememberSaveable { mutableStateOf<String?>(null) }
     var language by rememberSaveable { mutableStateOf("EN") }
 
-    if (!isAuthenticated) {
-        IdentityAccessEntryScreen(
-            onAuthenticated = {
-                isAuthenticated = true
-                selectedModuleName = AppModule.DASHBOARD_OVERVIEW.name
-            }
-        )
-        return
-    }
+    CompositionLocalProvider(LocalAppLanguage provides language) {
+        if (!isAuthenticated) {
+            IdentityAccessEntryScreen(
+                language = language,
+                isDarkTheme = isDarkTheme,
+                onLanguageToggle = { language = if (language == "EN") "ES" else "EN" },
+                onThemeToggle = onThemeToggle,
+                onAuthenticated = {
+                    isAuthenticated = true
+                    selectedTabName = MobileTab.HOME.name
+                    moreModuleName = null
+                }
+            )
+            return@CompositionLocalProvider
+        }
 
-    val selectedModule = AppModule.valueOf(selectedModuleName)
+        val selectedTab = MobileTab.valueOf(selectedTabName)
+        val moreModule = moreModuleName?.let { AppModule.valueOf(it) }
+        val title = when (selectedTab) {
+            MobileTab.HOME -> tr(language, "Home", "Inicio")
+            MobileTab.SENSORS -> tr(language, "Sensors", "Sensores")
+            MobileTab.ALERTS -> tr(language, "Alerts", "Alertas")
+            MobileTab.EQUIPMENT -> tr(language, "Equipment", "Equipos")
+            MobileTab.MORE -> moreModule?.shortLabel(language) ?: tr(language, "More", "Más")
+        }
 
-    AppShell(
-        selectedModule = selectedModule,
-        language = language,
-        isDarkTheme = isDarkTheme,
-        onModuleSelected = { module ->
-            if (module == AppModule.IDENTITY_ACCESS) {
-                isAuthenticated = false
-                selectedModuleName = AppModule.DASHBOARD_OVERVIEW.name
-            } else {
-                selectedModuleName = module.name
+        fun selectTab(tab: MobileTab) {
+            if (tab == MobileTab.MORE) moreModuleName = null
+            selectedTabName = tab.name
+        }
+        fun backToMore() { moreModuleName = null }
+
+        BackHandler(enabled = selectedTab != MobileTab.HOME) {
+            if (selectedTab == MobileTab.MORE && moreModule != null) backToMore()
+            else selectTab(MobileTab.HOME)
+        }
+
+        AppShell(
+            selectedTab = selectedTab,
+            title = title,
+            language = language,
+            isDarkTheme = isDarkTheme,
+            onTabSelected = ::selectTab,
+            onBack = if (selectedTab == MobileTab.MORE && moreModule != null) ::backToMore else null,
+            onLanguageToggle = { language = if (language == "EN") "ES" else "EN" },
+            onThemeToggle = onThemeToggle
+        ) {
+            when (selectedTab) {
+                MobileTab.HOME -> DashboardOverviewEntryScreen()
+                MobileTab.SENSORS -> SensorMonitoringEntryScreen()
+                MobileTab.ALERTS -> AlertsIncidentsEntryScreen()
+                MobileTab.EQUIPMENT -> EquipmentMaintenanceEntryScreen()
+                MobileTab.MORE -> when (moreModule) {
+                    AppModule.MONITORING_ORGANIZATION -> MonitoringOrganizationEntryScreen()
+                    AppModule.REPORTING_COMPLIANCE -> ReportingComplianceEntryScreen()
+                    AppModule.AUDIT_TRACEABILITY -> AuditTraceabilityEntryScreen()
+                    else -> MoreScreen(
+                        language = language,
+                        onOpenModule = { moreModuleName = it.name },
+                        onSignOut = {
+                            moreModuleName = null
+                            selectedTabName = MobileTab.HOME.name
+                            isAuthenticated = false
+                        }
+                    )
+                }
             }
-        },
-        onLanguageToggle = { language = if (language == "EN") "ES" else "EN" },
-        onThemeToggle = onThemeToggle
-    ) {
-        when (selectedModule) {
-            AppModule.DASHBOARD_OVERVIEW -> DashboardOverviewEntryScreen()
-            AppModule.MONITORING_ORGANIZATION -> MonitoringOrganizationEntryScreen()
-            AppModule.SENSOR_MONITORING -> SensorMonitoringEntryScreen()
-            AppModule.ALERTS_INCIDENTS -> AlertsIncidentsEntryScreen()
-            AppModule.EQUIPMENT_MAINTENANCE -> EquipmentMaintenanceEntryScreen()
-            AppModule.REPORTING_COMPLIANCE -> ReportingComplianceEntryScreen()
-            AppModule.AUDIT_TRACEABILITY -> AuditTraceabilityEntryScreen()
-            AppModule.IDENTITY_ACCESS -> Unit
         }
     }
 }

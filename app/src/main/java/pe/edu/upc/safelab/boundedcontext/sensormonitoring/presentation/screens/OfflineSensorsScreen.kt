@@ -1,5 +1,7 @@
 package pe.edu.upc.safelab.boundedcontext.sensormonitoring.presentation.screens
 
+import pe.edu.upc.safelab.common.tr
+import pe.edu.upc.safelab.common.LocalAppLanguage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +46,7 @@ fun OfflineSensorsScreen(
     onBack: () -> Unit = {},
     onOpenDetail: (String) -> Unit = {}
 ) {
+    val language = LocalAppLanguage.current
     val sensors = SensorMonitoringRepository.offlineSensors()
 
     LazyColumn(
@@ -55,18 +58,18 @@ fun OfflineSensorsScreen(
     ) {
         item {
             SensorHeader(
-                eyebrow = "Sensor monitoring",
-                title = "Offline sensors",
-                description = "Sensors that are not sending readings. Disconnected sensors come first, then those in maintenance or inactive.",
+                eyebrow = tr(language, "Sensor monitoring", "Sensores"),
+                title = tr(language, "Offline sensors", "Sensores sin conexión"),
+                description = tr(language, "Sensors that are not sending readings. Disconnected sensors come first, then those in maintenance or inactive.", "Sensores que no están enviando lecturas actualmente."),
                 onBack = onBack,
-                backLabel = "Live monitoring"
+                backLabel = tr(language, "Live monitoring", "Monitoreo en vivo")
             )
         }
 
         if (sensors.isEmpty()) {
             item {
                 NoDataState(
-                    title = "All sensors are online",
+                    title = tr(language, "All sensors are online", "Todos los sensores están en línea"),
                     message = "There are no disconnected, inactive or in-maintenance sensors right now."
                 )
             }
@@ -80,6 +83,7 @@ fun OfflineSensorsScreen(
 
 @Composable
 private fun OfflineSensorCard(sensor: Sensor, onClick: () -> Unit) {
+    val language = LocalAppLanguage.current
     val statusColor = sensorStatusColor(sensor.status)
 
     Surface(
@@ -117,17 +121,17 @@ private fun OfflineSensorCard(sensor: Sensor, onClick: () -> Unit) {
             }
 
             DetailLine(
-                label = "Last reading",
+                label = tr(language, "Last reading", "Última lectura"),
                 value = elapsedLabel(sensor.latestReading.recordedAt, SensorMonitoringRepository.currentTime()),
                 valueColor = statusColor
             )
-            DetailLine("Recorded at", formatTimestamp(sensor.latestReading.recordedAt))
-            DetailLine("Last value", sensor.latestReading.displayValue)
-            DetailLine("Facility", sensor.facilityName)
-            DetailLine("Responsible", sensor.responsible)
+            DetailLine(tr(language, "Recorded at", "Registrado el"), formatTimestamp(sensor.latestReading.recordedAt))
+            DetailLine(tr(language, "Last value", "Último valor"), sensor.latestReading.displayValue)
+            DetailLine(tr(language, "Facility", "Sede"), sensor.facilityName)
+            DetailLine(tr(language, "Responsible", "Responsable"), sensor.responsible)
 
             TextButton(onClick = onClick) {
-                Text("View detail", fontWeight = FontWeight.Bold)
+                Text(tr(language, "View detail", "Ver detalle"), fontWeight = FontWeight.Bold)
             }
         }
     }

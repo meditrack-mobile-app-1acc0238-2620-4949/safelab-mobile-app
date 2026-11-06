@@ -1,5 +1,6 @@
 package pe.edu.upc.safelab.boundedcontext.reportingcompliance.presentation.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +21,10 @@ fun ReportingComplianceEntryScreen() {
     }
 
     val selectedSection = ReportingSection.valueOf(selectedSectionName)
+
+    BackHandler(enabled = selectedSection != ReportingSection.REPORTS) {
+        selectedSectionName = ReportingSection.REPORTS.name
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
         ReportingSectionNavigation(

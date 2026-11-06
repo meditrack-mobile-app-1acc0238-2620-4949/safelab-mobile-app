@@ -20,6 +20,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import pe.edu.upc.safelab.common.LocalAppLanguage
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -31,12 +32,14 @@ import pe.edu.upc.safelab.ui.theme.SafeLabPrimary
 import pe.edu.upc.safelab.ui.theme.SafeLabSuccess
 import pe.edu.upc.safelab.ui.theme.SafeLabWarning
 
-enum class ReportingSection(val label: String) {
-    REPORTS("Reports"),
-    GENERATE("Generate"),
-    HISTORY("History"),
-    COMPLIANCE("Compliance"),
-    EXPORT("Export")
+enum class ReportingSection(val labelEn: String, val labelEs: String) {
+    REPORTS("Reports", "Reportes"),
+    GENERATE("Generate", "Generar"),
+    HISTORY("History", "Historial"),
+    COMPLIANCE("Compliance", "Cumplimiento"),
+    EXPORT("Export", "Exportar");
+
+    fun label(language: String) = if (language == "ES") labelEs else labelEn
 }
 
 @Composable
@@ -44,6 +47,7 @@ fun ReportingSectionNavigation(
     selectedSection: ReportingSection,
     onSectionSelected: (ReportingSection) -> Unit
 ) {
+    val language = LocalAppLanguage.current
     LazyRow(
         modifier = Modifier
             .fillMaxWidth()
@@ -63,7 +67,7 @@ fun ReportingSectionNavigation(
                 )
             ) {
                 Text(
-                    text = section.label,
+                    text = section.label(language),
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
                     color = if (selected) Color.White else MaterialTheme.colorScheme.onSurface,
                     style = MaterialTheme.typography.labelLarge,

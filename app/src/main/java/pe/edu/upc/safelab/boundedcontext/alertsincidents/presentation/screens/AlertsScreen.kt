@@ -35,6 +35,8 @@ import pe.edu.upc.safelab.boundedcontext.alertsincidents.presentation.components
 import pe.edu.upc.safelab.boundedcontext.alertsincidents.presentation.components.StatusChip
 import pe.edu.upc.safelab.boundedcontext.alertsincidents.presentation.components.severityColor
 import pe.edu.upc.safelab.ui.theme.SafeLabBlue
+import pe.edu.upc.safelab.common.LocalAppLanguage
+import pe.edu.upc.safelab.common.tr
 import pe.edu.upc.safelab.ui.theme.SafeLabDanger
 import pe.edu.upc.safelab.ui.theme.SafeLabSuccess
 import pe.edu.upc.safelab.ui.theme.SafeLabWarning
@@ -48,6 +50,7 @@ fun AlertsScreen(
     onOpenRules: () -> Unit = {},
     onOpenIncidents: () -> Unit = {}
 ) {
+    val language = LocalAppLanguage.current
     val repository = AlertsIncidentsRepository
     var severityName by rememberSaveable { mutableStateOf<String?>(null) }
     var statusName by rememberSaveable { mutableStateOf<String?>(null) }
@@ -68,29 +71,29 @@ fun AlertsScreen(
     ) {
         item {
             AlertsHeader(
-                eyebrow = "Alerts & incidents",
-                title = "Alerts",
-                description = "Alerts generated when a monitored value leaves the limits configured for its equipment."
+                eyebrow = tr(language, "Alerts & incidents", "Alertas e incidentes"),
+                title = tr(language, "Alerts", "Alertas"),
+                description = tr(language, "Alerts generated when a monitored value leaves the limits configured for its equipment.", "Revisa alertas activas y su prioridad.")
             )
         }
 
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                SecondaryButton(text = "Alert limits", onClick = onOpenRules, modifier = Modifier.weight(1f))
-                SecondaryButton(text = "Incident history", onClick = onOpenIncidents, modifier = Modifier.weight(1f))
+                SecondaryButton(text = tr(language, "Alert limits", "Límites de alerta"), onClick = onOpenRules, modifier = Modifier.weight(1f))
+                SecondaryButton(text = tr(language, "Incident history", "Historial de incidentes"), onClick = onOpenIncidents, modifier = Modifier.weight(1f))
             }
         }
 
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MetricTile(
-                    label = "Critical active",
+                    label = tr(language, "Critical active", "Críticas activas"),
                     value = repository.criticalActiveAlerts().size.toString(),
                     modifier = Modifier.weight(1f),
                     accent = SafeLabDanger
                 )
                 MetricTile(
-                    label = "Not acknowledged",
+                    label = tr(language, "Not acknowledged", "Sin reconocer"),
                     value = repository.pendingAcknowledgementCount().toString(),
                     modifier = Modifier.weight(1f),
                     accent = SafeLabWarning
@@ -101,13 +104,13 @@ fun AlertsScreen(
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MetricTile(
-                    label = "Total alerts",
+                    label = tr(language, "Total alerts", "Total alertas"),
                     value = repository.alerts.size.toString(),
                     modifier = Modifier.weight(1f),
                     accent = SafeLabBlue
                 )
                 MetricTile(
-                    label = "Resolved",
+                    label = tr(language, "Resolved", "Resueltas"),
                     value = repository.alerts.count { it.status == AlertStatus.RESOLVED }.toString(),
                     modifier = Modifier.weight(1f),
                     accent = SafeLabSuccess
@@ -116,11 +119,11 @@ fun AlertsScreen(
         }
 
         item {
-            AlertsSectionCard(eyebrow = "Focus", title = "Equipment with active alerts") {
+            AlertsSectionCard(eyebrow = tr(language, "Focus", "Enfoque"), title = tr(language, "Equipment with active alerts", "Equipos con alertas activas")) {
                 if (affectedEquipment.isEmpty()) {
                     NoDataState(
-                        title = "No affected equipment",
-                        message = "No registered equipment has active alerts."
+                        title = tr(language, "No affected equipment", "No hay equipos afectados"),
+                        message = tr(language, "No registered equipment has active alerts.", "No hay equipos registrados con alertas activas.")
                     )
                 } else {
                     affectedEquipment.forEach { (equipment, equipmentAlerts) ->
@@ -138,7 +141,7 @@ fun AlertsScreen(
                                 color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
-                                text = "${equipmentAlerts.size} active",
+                                text = tr(language, "${equipmentAlerts.size} active", "${equipmentAlerts.size} activas"),
                                 style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -150,32 +153,32 @@ fun AlertsScreen(
         }
 
         item {
-            AlertsSectionCard(title = "Filters") {
+            AlertsSectionCard(title = tr(language, "Filters", "Filtros")) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Search alert or equipment") },
+                    label = { Text(tr(language, "Search alert or equipment", "Buscar alerta o equipo")) },
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp)
                 )
-                FieldLabel("Severity")
+                FieldLabel(tr(language, "Severity", "Severidad"))
                 OptionChips(
-                    options = listOf<Pair<String?, String>>(null to "All") +
+                    options = listOf<Pair<String?, String>>(null to tr(language, "All", "Todos")) +
                         Severity.entries.reversed().map { it.name to it.label },
                     selected = severityName,
                     onSelected = { severityName = it }
                 )
-                FieldLabel("Status")
+                FieldLabel(tr(language, "Status", "Estado"))
                 OptionChips(
-                    options = listOf<Pair<String?, String>>(null to "All") +
+                    options = listOf<Pair<String?, String>>(null to tr(language, "All", "Todos")) +
                         AlertStatus.entries.map { it.name to it.label },
                     selected = statusName,
                     onSelected = { statusName = it }
                 )
-                FieldLabel("Order")
+                FieldLabel(tr(language, "Order", "Orden"))
                 OptionChips(
-                    options = listOf(SORT_SEVERITY to "Most severe first", SORT_NEWEST to "Newest first"),
+                    options = listOf(SORT_SEVERITY to tr(language, "Most severe first", "Más severas primero"), SORT_NEWEST to tr(language, "Newest first", "Más recientes primero")),
                     selected = sort,
                     onSelected = { if (it != null) sort = it }
                 )
@@ -186,18 +189,18 @@ fun AlertsScreen(
             item {
                 when {
                     repository.alerts.isEmpty() -> NoDataState(
-                        title = "No alerts available",
-                        message = "No alerts have been generated yet."
+                        title = tr(language, "No alerts available", "No hay alertas disponibles"),
+                        message = tr(language, "No alerts have been generated yet.", "Aún no se han generado alertas.")
                     )
 
                     severity == Severity.CRITICAL -> NoDataState(
-                        title = "No critical alerts",
-                        message = "There are no alerts classified as critical for the selected filters."
+                        title = tr(language, "No critical alerts", "No hay alertas críticas"),
+                        message = tr(language, "There are no alerts classified as critical for the selected filters.", "No hay alertas críticas para los filtros seleccionados.")
                     )
 
                     else -> NoDataState(
-                        title = "No alerts found",
-                        message = "No alerts match the selected filters."
+                        title = tr(language, "No alerts found", "No se encontraron alertas"),
+                        message = tr(language, "No alerts match the selected filters.", "No hay alertas que coincidan con los filtros seleccionados.")
                     )
                 }
             }
