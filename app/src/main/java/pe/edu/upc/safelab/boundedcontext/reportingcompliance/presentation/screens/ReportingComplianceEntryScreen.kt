@@ -15,7 +15,9 @@ import pe.edu.upc.safelab.boundedcontext.reportingcompliance.presentation.compon
 import pe.edu.upc.safelab.boundedcontext.reportingcompliance.presentation.components.ReportingSectionNavigation
 
 @Composable
-fun ReportingComplianceEntryScreen() {
+fun ReportingComplianceEntryScreen(
+    onOpenEnvironmentalCompliance: () -> Unit = {}
+) {
     var selectedSectionName by rememberSaveable {
         mutableStateOf(ReportingSection.REPORTS.name)
     }
@@ -47,7 +49,8 @@ fun ReportingComplianceEntryScreen() {
                 )
                 ReportingSection.HISTORY -> HistoricalDataScreen()
                 ReportingSection.COMPLIANCE -> ComplianceScreen(
-                    onGenerateReport = { selectedSectionName = ReportingSection.GENERATE.name }
+                    onGenerateReport = { selectedSectionName = ReportingSection.GENERATE.name },
+                    onOpenEnvironmentalCompliance = onOpenEnvironmentalCompliance
                 )
                 ReportingSection.EXPORT -> ExportDataScreen()
             }

@@ -49,12 +49,20 @@ enum class AppModule(
         symbol = "⚙"
     ),
     REPORTING_COMPLIANCE(
-        titleEn = "Reporting & Compliance",
-        titleEs = "Reportes y cumplimiento",
-        shortLabelEn = "Reports & Compliance",
-        shortLabelEs = "Reportes y cumplimiento",
+        titleEn = "Reporting & Analytics",
+        titleEs = "Reportes y análisis",
+        shortLabelEn = "Reports & Analytics",
+        shortLabelEs = "Reportes y análisis",
         branch = "feature/tb1-bc-reporting-compliance",
         symbol = "▤"
+    ),
+    ENVIRONMENTAL_COMPLIANCE(
+        titleEn = "Environmental Compliance Management",
+        titleEs = "Gestión de cumplimiento ambiental",
+        shortLabelEn = "Environmental compliance",
+        shortLabelEs = "Cumplimiento ambiental",
+        branch = "feature/av2-environmental-compliance",
+        symbol = "✓"
     ),
     AUDIT_TRACEABILITY(
         titleEn = "Audit & Traceability",

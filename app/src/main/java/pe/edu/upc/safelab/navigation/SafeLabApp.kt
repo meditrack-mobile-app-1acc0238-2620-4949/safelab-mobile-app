@@ -12,6 +12,7 @@ import pe.edu.upc.safelab.boundedcontext.alertsincidents.presentation.screens.Al
 import pe.edu.upc.safelab.boundedcontext.audittraceability.presentation.screens.AuditTraceabilityEntryScreen
 import pe.edu.upc.safelab.boundedcontext.dashboardoverview.presentation.screens.DashboardOverviewEntryScreen
 import pe.edu.upc.safelab.boundedcontext.equipmentmaintenance.presentation.screens.EquipmentMaintenanceEntryScreen
+import pe.edu.upc.safelab.boundedcontext.environmentalcompliance.presentation.screens.EnvironmentalComplianceEntryScreen
 import pe.edu.upc.safelab.boundedcontext.identityaccess.presentation.screens.IdentityAccessEntryScreen
 import pe.edu.upc.safelab.boundedcontext.identityaccess.domain.model.AuthenticatedUser
 import pe.edu.upc.safelab.boundedcontext.identityaccess.data.repository.LocalIdentityAccessRepository
@@ -160,7 +161,12 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
                     MobileTab.EQUIPMENT -> EquipmentMaintenanceEntryScreen()
                     MobileTab.MORE -> when (moreModule) {
                         AppModule.MONITORING_ORGANIZATION -> MonitoringOrganizationEntryScreen()
-                        AppModule.REPORTING_COMPLIANCE -> ReportingComplianceEntryScreen()
+                        AppModule.REPORTING_COMPLIANCE -> ReportingComplianceEntryScreen(
+                            onOpenEnvironmentalCompliance = {
+                                moreModuleName = AppModule.ENVIRONMENTAL_COMPLIANCE.name
+                            }
+                        )
+                        AppModule.ENVIRONMENTAL_COMPLIANCE -> EnvironmentalComplianceEntryScreen()
                         AppModule.AUDIT_TRACEABILITY -> AuditTraceabilityEntryScreen()
                         else -> MoreScreen(
                             language = language,
