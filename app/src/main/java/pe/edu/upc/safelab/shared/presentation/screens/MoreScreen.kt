@@ -89,10 +89,18 @@ fun MoreScreen(
         }
         item {
             MoreModuleRow(
-                title = if (spanish) "Reportes y cumplimiento" else "Reports & Compliance",
+                title = if (spanish) "Reportes y análisis" else "Reports & Analytics",
                 subtitle = if (spanish) "Reportes, historial y exportaciones" else "Reports, history and exports",
                 icon = R.drawable.ic_nav_reports,
                 onClick = { onOpenModule(AppModule.REPORTING_COMPLIANCE) }
+            )
+        }
+        item {
+            MoreModuleRow(
+                title = if (spanish) "Cumplimiento ambiental" else "Environmental compliance",
+                subtitle = if (spanish) "Reglas, evaluaciones e incumplimientos" else "Rules, evaluations and violations",
+                icon = R.drawable.ic_nav_reports,
+                onClick = { onOpenModule(AppModule.ENVIRONMENTAL_COMPLIANCE) }
             )
         }
         item {
