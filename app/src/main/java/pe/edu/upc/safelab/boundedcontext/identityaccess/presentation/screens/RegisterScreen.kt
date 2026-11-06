@@ -37,6 +37,7 @@ fun RegisterScreen(
     onLanguageToggle: () -> Unit,
     onThemeToggle: () -> Unit,
     onBackToLogin: () -> Unit,
+    onRegistered: (String, String, RegistrationRequest) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val repository = remember { LocalIdentityAccessRepository() }
@@ -153,16 +154,18 @@ fun RegisterScreen(
                         if (validation != null) {
                             errorMessage = validation
                         } else {
-                            val result = repository.register(
-                                RegistrationRequest(
-                                    firstNames = firstNames,
-                                    lastNames = lastNames,
-                                    phone = phone,
-                                    email = email,
-                                    password = password
-                                )
+                            val request = RegistrationRequest(
+                                firstNames = firstNames,
+                                lastNames = lastNames,
+                                phone = phone,
+                                email = email,
+                                password = password
                             )
+                            val result = repository.register(request)
                             if (result.successful) {
+                                if (result.userId != null && result.generatedUsername != null) {
+                                    onRegistered(result.userId, result.generatedUsername, request)
+                                }
                                 successMessage = tr(
                                     language,
                                     "Account created. Check your email to verify and activate your account. Access will remain pending until the activation flow is completed.",

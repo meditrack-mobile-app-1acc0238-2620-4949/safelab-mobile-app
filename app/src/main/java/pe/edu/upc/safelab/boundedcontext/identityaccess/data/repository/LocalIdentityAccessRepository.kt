@@ -22,7 +22,8 @@ data class RegistrationRequest(
 data class RegistrationResult(
     val successful: Boolean,
     val message: String,
-    val generatedUsername: String? = null
+    val generatedUsername: String? = null,
+    val userId: String? = null
 )
 
 private data class LocalAccount(
@@ -83,8 +84,9 @@ class LocalIdentityAccessRepository {
             return RegistrationResult(false, "The generated username is already in use. Try another name combination.")
         }
 
+        val accountId = "usr-${accounts.size + 1}"
         accounts += LocalAccount(
-            id = "usr-${accounts.size + 1}",
+            id = accountId,
             username = username,
             displayName = buildDisplayName(request.firstNames, request.lastNames),
             email = email,
@@ -97,7 +99,17 @@ class LocalIdentityAccessRepository {
         return RegistrationResult(
             successful = true,
             message = "Your account was created and is pending verification.",
-            generatedUsername = username
+            generatedUsername = username,
+            userId = accountId
         )
     }
+
+    fun isEmailAvailable(userId: String, email: String): Boolean =
+        accounts.none { it.id != userId && it.email.equals(email.trim(), ignoreCase = true) }
+
+    fun updateEmail(userId: String, email: String) {
+        val index = accounts.indexOfFirst { it.id == userId }
+        if (index >= 0) accounts[index] = accounts[index].copy(email = email.trim().lowercase())
+    }
+
 }

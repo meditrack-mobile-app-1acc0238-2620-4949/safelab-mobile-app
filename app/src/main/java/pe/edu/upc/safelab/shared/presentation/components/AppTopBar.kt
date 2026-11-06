@@ -41,7 +41,9 @@ fun AppTopBar(
     isDarkTheme: Boolean,
     onBack: (() -> Unit)?,
     onLanguageToggle: () -> Unit,
-    onThemeToggle: () -> Unit
+    onThemeToggle: () -> Unit,
+    avatarInitials: String,
+    onProfileClick: () -> Unit
 ) {
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(
@@ -119,10 +121,12 @@ fun AppTopBar(
             }
             Box(
                 modifier = Modifier.padding(start = 7.dp, end = 10.dp).size(34.dp)
-                    .background(Color(0xFF1056D9), CircleShape),
+                    .background(Color(0xFF1056D9), CircleShape)
+                    .semantics { contentDescription = if (language == "ES") "Abrir mi perfil" else "Open my profile" }
+                    .clickable(onClick = onProfileClick),
                 contentAlignment = Alignment.Center
             ) {
-                Text("ML", color = Color.White, fontWeight = FontWeight.Black,
+                Text(avatarInitials, color = Color.White, fontWeight = FontWeight.Black,
                     style = MaterialTheme.typography.labelMedium)
             }
         }

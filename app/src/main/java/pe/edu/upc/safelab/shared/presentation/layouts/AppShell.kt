@@ -22,12 +22,14 @@ fun AppShell(
     onBack: (() -> Unit)?,
     onLanguageToggle: () -> Unit,
     onThemeToggle: () -> Unit,
+    avatarInitials: String,
+    onProfileClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = {
-            AppTopBar(title, language, isDarkTheme, onBack, onLanguageToggle, onThemeToggle)
+            AppTopBar(title, language, isDarkTheme, onBack, onLanguageToggle, onThemeToggle, avatarInitials, onProfileClick)
         },
         bottomBar = {
             AppBottomBar(selectedTab, language, onTabSelected)

@@ -35,6 +35,8 @@ import pe.edu.upc.safelab.shared.domain.model.AppModule
 fun MoreScreen(
     language: String,
     onOpenModule: (AppModule) -> Unit,
+    onOpenProfile: () -> Unit,
+    accountName: String,
     onSignOut: () -> Unit
 ) {
     val spanish = language == "ES"
@@ -121,7 +123,17 @@ fun MoreScreen(
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Text("SafeLab Administrator", fontWeight = FontWeight.Bold)
+                    Text(accountName, fontWeight = FontWeight.Bold)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenProfile).padding(vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(painterResource(R.drawable.ic_profile_edit), contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                        Text(if (spanish) "Mi perfil" else "My profile",
+                            color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    }
                     Divider(modifier = Modifier.padding(vertical = 9.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth().clickable(onClick = onSignOut).padding(vertical = 10.dp),
