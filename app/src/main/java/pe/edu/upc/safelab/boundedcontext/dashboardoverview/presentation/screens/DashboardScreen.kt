@@ -31,12 +31,15 @@ import pe.edu.upc.safelab.boundedcontext.dashboardoverview.presentation.componen
 import pe.edu.upc.safelab.boundedcontext.dashboardoverview.presentation.components.RiskGrid
 import pe.edu.upc.safelab.boundedcontext.dashboardoverview.presentation.components.WorkflowStrip
 import pe.edu.upc.safelab.ui.theme.SafeLabAccent
+import pe.edu.upc.safelab.common.LocalAppLanguage
+import pe.edu.upc.safelab.common.tr
 import pe.edu.upc.safelab.ui.theme.SafeLabPrimary
 
 @Composable
 fun DashboardScreen(
     onOpenTrends: () -> Unit = {}
 ) {
+    val language = LocalAppLanguage.current
     val metrics = DashboardMockData.metrics
 
     LazyColumn(
@@ -54,27 +57,15 @@ fun DashboardScreen(
             FilterSummaryCard()
         }
 
-        items(metrics.chunked(2)) { rowMetrics ->
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                rowMetrics.forEach { metric ->
-                    DashboardMetricCard(
-                        metric = metric,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-                if (rowMetrics.size == 1) {
-                    Box(modifier = Modifier.weight(1f))
-                }
-            }
+        // Full-width cards keep values readable on narrow phones.
+        items(metrics) { metric ->
+            DashboardMetricCard(metric = metric)
         }
 
         item {
             DashboardSectionCard(
-                eyebrow = "Metric explorer",
-                title = "Health score"
+                eyebrow = tr(language, "Metric explorer", "Explorador de métricas"),
+                title = tr(language, "Health score", "Índice de salud")
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -82,7 +73,7 @@ fun DashboardScreen(
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     Text(
-                        text = "Weighted operational readiness",
+                        text = tr(language, "Weighted operational readiness", "Preparación operativa ponderada"),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         style = MaterialTheme.typography.bodyMedium
                     )
@@ -92,7 +83,7 @@ fun DashboardScreen(
                         color = SafeLabAccent
                     )
                     DashboardActionButton(
-                        text = "View monitoring trends",
+                        text = tr(language, "View monitoring trends", "Ver tendencias"),
                         onClick = onOpenTrends,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -102,8 +93,8 @@ fun DashboardScreen(
 
         item {
             DashboardSectionCard(
-                eyebrow = "Compliance control",
-                title = "Storage compliance"
+                eyebrow = tr(language, "Compliance control", "Control de cumplimiento"),
+                title = tr(language, "Storage compliance", "Cumplimiento de almacenamiento")
             ) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
@@ -119,8 +110,8 @@ fun DashboardScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
-                        SmallValueCard("Critical alerts", "2", Modifier.weight(1f))
-                        SmallValueCard("Pending evidence", "1", Modifier.weight(1f))
+                        SmallValueCard(tr(language, "Critical alerts", "Alertas críticas"), "2", Modifier.weight(1f))
+                        SmallValueCard(tr(language, "Pending evidence", "Evidencia pendiente"), "1", Modifier.weight(1f))
                     }
                 }
             }
@@ -128,8 +119,8 @@ fun DashboardScreen(
 
         item {
             DashboardSectionCard(
-                eyebrow = "Recent activity",
-                title = "Priority alerts"
+                eyebrow = tr(language, "Recent activity", "Actividad reciente"),
+                title = tr(language, "Priority alerts", "Alertas prioritarias")
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     DashboardMockData.priorityAlerts.forEach { alert ->
@@ -141,8 +132,8 @@ fun DashboardScreen(
 
         item {
             DashboardSectionCard(
-                eyebrow = "Facility performance",
-                title = "Monitored facilities"
+                eyebrow = tr(language, "Facility performance", "Rendimiento por sede"),
+                title = tr(language, "Monitored facilities", "Sedes monitoreadas")
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     DashboardMockData.facilities.forEach { facility ->
@@ -154,8 +145,8 @@ fun DashboardScreen(
 
         item {
             DashboardSectionCard(
-                eyebrow = "Operational risks",
-                title = "Risk snapshot"
+                eyebrow = tr(language, "Operational risks", "Riesgos operativos"),
+                title = tr(language, "Risk snapshot", "Resumen de riesgos")
             ) {
                 RiskGrid(DashboardMockData.risks)
             }
@@ -163,11 +154,11 @@ fun DashboardScreen(
 
         item {
             DashboardSectionCard(
-                eyebrow = "Cross-context workflow",
-                title = "How modules interact"
+                eyebrow = tr(language, "Cross-context workflow", "Flujo compartido"),
+                title = tr(language, "How modules interact", "Cómo interactúan los módulos")
             ) {
                 Text(
-                    text = "Operational chain generated from the shared SafeLab data model.",
+                    text = tr(language, "Operational chain generated from the shared SafeLab data model.", "Cadena operativa generada a partir del modelo compartido de SafeLab."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -179,6 +170,7 @@ fun DashboardScreen(
 
 @Composable
 private fun DashboardHero() {
+    val language = LocalAppLanguage.current
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(26.dp),
@@ -199,19 +191,19 @@ private fun DashboardHero() {
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 Text(
-                    text = "DASHBOARD & OVERVIEW",
+                    text = tr(language, "DASHBOARD & OVERVIEW", "PANEL PRINCIPAL"),
                     color = MaterialTheme.colorScheme.primary,
                     style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Black
                 )
                 Text(
-                    text = "Operational dashboard",
+                    text = tr(language, "Operational dashboard", "Panel operativo"),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Black,
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Filter, compare and inspect the operational health of laboratories, sensors, alerts, incidents and compliance readiness.",
+                    text = tr(language, "Filter, compare and inspect the operational health of laboratories, sensors, alerts, incidents and compliance readiness.", "Revisa de forma rápida el estado operativo general de laboratorios, sensores y alertas."),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -221,7 +213,7 @@ private fun DashboardHero() {
                 ) {
                     Column(modifier = Modifier.padding(14.dp)) {
                         Text(
-                            text = "Health score",
+                            text = tr(language, "Health score", "Índice de salud"),
                             color = Color.White.copy(alpha = 0.86f),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.Bold
@@ -258,14 +250,14 @@ private fun FilterSummaryCard() {
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "CURRENT VIEW",
+                text = tr(LocalAppLanguage.current, "CURRENT VIEW", "VISTA ACTUAL"),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
                 fontWeight = FontWeight.Black
             )
-            FilterValue("Facility", "All allowed facilities")
-            FilterValue("Period", "Last 24 hours")
-            FilterValue("Selected metric", "Health score")
+            FilterValue(tr(LocalAppLanguage.current, "Facility", "Sede"), tr(LocalAppLanguage.current, "All allowed facilities", "Todas las sedes permitidas"))
+            FilterValue(tr(LocalAppLanguage.current, "Period", "Período"), tr(LocalAppLanguage.current, "Last 24 hours", "Últimas 24 horas"))
+            FilterValue(tr(LocalAppLanguage.current, "Selected metric", "Métrica seleccionada"), tr(LocalAppLanguage.current, "Health score", "Índice de salud"))
         }
     }
 }

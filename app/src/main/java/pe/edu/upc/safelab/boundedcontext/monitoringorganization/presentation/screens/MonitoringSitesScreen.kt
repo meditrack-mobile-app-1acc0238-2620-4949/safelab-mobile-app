@@ -1,5 +1,7 @@
 package pe.edu.upc.safelab.boundedcontext.monitoringorganization.presentation.screens
 
+import pe.edu.upc.safelab.common.tr
+import pe.edu.upc.safelab.common.LocalAppLanguage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -49,6 +51,7 @@ fun MonitoringSitesScreen(
     onOpenSite: (String) -> Unit = {},
     onOpenEquipmentRegistry: () -> Unit = {}
 ) {
+    val language = LocalAppLanguage.current
     val repository = MonitoringOrganizationRepository
     val sites = repository.sites
     val summary = repository.summary()
@@ -64,9 +67,9 @@ fun MonitoringSitesScreen(
     ) {
         item {
             OrganizationHeader(
-                eyebrow = "Monitoring organization",
-                title = "Monitoring sites",
-                description = "Laboratories, hospital pharmacies and storage facilities monitored by SafeLab. Open a site to see its storage areas and equipment."
+                eyebrow = tr(language, "Monitoring organization", "Organización"),
+                title = tr(language, "Monitoring sites", "Sedes monitoreadas"),
+                description = tr(language, "Laboratories, hospital pharmacies and storage facilities monitored by SafeLab. Open a site to see its storage areas and equipment.", "Consulta sedes, áreas y equipos registrados.")
             )
         }
 
@@ -105,7 +108,7 @@ fun MonitoringSitesScreen(
                     onClick = onOpenEquipmentRegistry,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Equipment registry", fontWeight = FontWeight.Bold)
+                    Text(tr(language, "Equipment registry", "Registro de equipos"), fontWeight = FontWeight.Bold)
                 }
             }
         }
@@ -118,7 +121,7 @@ fun MonitoringSitesScreen(
 
         item {
             Text(
-                text = "Registered sites",
+                text = tr(language, "Registered sites", "Sedes registradas"),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.onBackground
@@ -149,7 +152,7 @@ fun MonitoringSitesScreen(
                         InfoLine("Storage areas", areas.size.toString())
                         InfoLine("Monitored equipment", equipment.size.toString())
                         TextButton(onClick = { onOpenSite(site.id) }) {
-                            Text("View storage areas →", fontWeight = FontWeight.Bold)
+                            Text(tr(language, "View storage areas →", "Ver áreas de almacenamiento →"), fontWeight = FontWeight.Bold)
                         }
                     }
                 }

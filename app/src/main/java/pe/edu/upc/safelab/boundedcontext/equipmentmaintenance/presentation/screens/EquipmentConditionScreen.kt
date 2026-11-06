@@ -1,5 +1,7 @@
 package pe.edu.upc.safelab.boundedcontext.equipmentmaintenance.presentation.screens
 
+import pe.edu.upc.safelab.common.tr
+import pe.edu.upc.safelab.common.LocalAppLanguage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -51,12 +53,13 @@ fun EquipmentConditionScreen(
     onOpenReliability: (String) -> Unit = {},
     onLogMaintenance: (String?) -> Unit = {}
 ) {
+    val language = LocalAppLanguage.current
     val repository = EquipmentMaintenanceRepository
     var levelFilter by rememberSaveable { mutableStateOf<String?>(null) }
 
     val all = repository.conditions()
     val visible = repository.conditions(ConditionLevel.entries.firstOrNull { it.name == levelFilter })
-    val filterOptions = listOf<Pair<String?, String>>(null to "All (${all.size})") +
+    val filterOptions = listOf<Pair<String?, String>>(null to tr(language, "All (${all.size})", "Todos (${all.size})")) +
         ConditionLevel.entries.reversed().map { level ->
             level.name to "${level.label} (${all.count { it.level == level }})"
         }
@@ -70,33 +73,29 @@ fun EquipmentConditionScreen(
     ) {
         item {
             EquipmentHeader(
-                eyebrow = "Equipment condition & maintenance",
-                title = "Equipment condition",
-                description = "Condition of each monitored equipment based on its latest readings. Values out of the allowed range and active warnings are shown first."
+                eyebrow = tr(language, "Equipment condition & maintenance", "Equipos"),
+                title = tr(language, "Equipment condition", "Estado de equipos"),
+                description = tr(language, "Condition of each monitored equipment based on its latest readings. Values out of the allowed range and active warnings are shown first.", "Estado general de cada equipo según sus últimas lecturas.")
             )
         }
 
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricTile(
+                        label = tr(language, "Critical", "Crítico"),
+                        value = all.count { it.level == ConditionLevel.CRITICAL }.toString(),
+                        modifier = Modifier.weight(1f), accent = SafeLabDanger
+                    )
+                    MetricTile(
+                        label = tr(language, "Attention", "Atención"),
+                        value = all.count { it.level == ConditionLevel.ATTENTION }.toString(),
+                        modifier = Modifier.weight(1f), accent = SafeLabWarning
+                    )
+                }
                 MetricTile(
-                    label = "Critical",
-                    value = all.count { it.level == ConditionLevel.CRITICAL }.toString(),
-                    modifier = Modifier.weight(1f),
-                    accent = SafeLabDanger
-                )
-                MetricTile(
-                    label = "Attention",
-                    value = all.count { it.level == ConditionLevel.ATTENTION }.toString(),
-                    modifier = Modifier.weight(1f),
-                    accent = SafeLabWarning
-                )
-                MetricTile(
-                    label = "Good",
+                    label = tr(language, "Good", "Bueno"),
                     value = all.count { it.level == ConditionLevel.GOOD }.toString(),
-                    modifier = Modifier.weight(1f),
                     accent = SafeLabSuccess
                 )
             }
@@ -108,10 +107,10 @@ fun EquipmentConditionScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 OutlinedButton(onClick = { onOpenHistory(null) }, modifier = Modifier.weight(1f)) {
-                    Text("Maintenance history", fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text(tr(language, "Maintenance history", "Historial de mantenimiento"), fontWeight = FontWeight.Bold, maxLines = 1)
                 }
                 OutlinedButton(onClick = { onLogMaintenance(null) }, modifier = Modifier.weight(1f)) {
-                    Text("+ Log maintenance", fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text(tr(language, "+ Log maintenance", "+ Registrar mantenimiento"), fontWeight = FontWeight.Bold, maxLines = 1)
                 }
             }
         }
@@ -127,8 +126,8 @@ fun EquipmentConditionScreen(
         if (visible.isEmpty()) {
             item {
                 NoDataState(
-                    title = "No equipment in this condition",
-                    message = "Choose another filter to see the rest of the equipment."
+                    title = tr(language, "No equipment in this condition", "No hay equipos en esta condición"),
+                    message = tr(language, "Choose another filter to see the rest of the equipment.", "Elige otro filtro para ver el resto de equipos.")
                 )
             }
         } else {
@@ -195,9 +194,9 @@ private fun ConditionCard(
                     else -> conditionColor(level)
                 }
                 val status = when {
-                    !indicator.online -> "Sensor offline"
-                    indicator.withinLimits -> "In range"
-                    else -> "Out of range"
+                    !indicator.online -> tr(LocalAppLanguage.current, "Sensor offline", "Sensor sin conexión")
+                    indicator.withinLimits -> tr(LocalAppLanguage.current, "In range", "En rango")
+                    else -> tr(LocalAppLanguage.current, "Out of range", "Fuera de rango")
                 }
                 DetailLine(
                     label = "${indicator.name} (${indicator.allowedRange})",

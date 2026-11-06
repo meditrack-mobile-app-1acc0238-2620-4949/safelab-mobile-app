@@ -1,5 +1,7 @@
 package pe.edu.upc.safelab.boundedcontext.alertsincidents.presentation.screens
 
+import pe.edu.upc.safelab.common.tr
+import pe.edu.upc.safelab.common.LocalAppLanguage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -38,6 +40,7 @@ fun AlertRulesScreen(
     onBack: () -> Unit = {},
     onOpenAlert: (String) -> Unit = {}
 ) {
+    val language = LocalAppLanguage.current
     val repository = AlertsIncidentsRepository
     var selectedEquipmentId by rememberSaveable { mutableStateOf<String?>(repository.equipment.first().equipmentId) }
 
@@ -53,15 +56,15 @@ fun AlertRulesScreen(
     ) {
         item {
             AlertsHeader(
-                eyebrow = "Alert limits",
-                title = "Limits per equipment",
-                description = "Define the allowed range of each monitored equipment. An alert is generated when a reading leaves it.",
+                eyebrow = tr(language, "Alert limits", "Límites de alerta"),
+                title = tr(language, "Limits per equipment", "Límites por equipo"),
+                description = tr(language, "Define the allowed range of each monitored equipment. An alert is generated when a reading leaves it.", "Configura los rangos permitidos por equipo."),
                 onBack = onBack
             )
         }
 
         item {
-            AlertsSectionCard(eyebrow = "Step 1", title = "Equipment") {
+            AlertsSectionCard(eyebrow = tr(language, "Step 1", "Paso 1"), title = tr(language, "Equipment", "Equipo")) {
                 OptionChips(
                     options = repository.equipment.map { it.equipmentId to it.name },
                     selected = selectedEquipmentId,
@@ -77,7 +80,7 @@ fun AlertRulesScreen(
         if (equipmentRules.isEmpty()) {
             item {
                 NoDataState(
-                    title = "No configurable limits",
+                    title = tr(language, "No configurable limits", "No hay límites configurables"),
                     message = "This equipment only reports open / closed door states, so it has no numeric limits."
                 )
             }
@@ -91,6 +94,7 @@ fun AlertRulesScreen(
 
 @Composable
 private fun RuleEditor(rule: AlertRule, onOpenAlert: (String) -> Unit) {
+    val language = LocalAppLanguage.current
     val repository = AlertsIncidentsRepository
     var min by rememberSaveable(rule.ruleId) { mutableStateOf(AlertRule.format(rule.min)) }
     var max by rememberSaveable(rule.ruleId) { mutableStateOf(AlertRule.format(rule.max)) }

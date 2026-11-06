@@ -1,5 +1,7 @@
 package pe.edu.upc.safelab.boundedcontext.audittraceability.presentation.screens
 
+import pe.edu.upc.safelab.common.tr
+import pe.edu.upc.safelab.common.LocalAppLanguage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -59,6 +61,7 @@ import pe.edu.upc.safelab.ui.theme.SafeLabWarning
 fun AuditTrailScreen(
     onOpenTraceability: (String?) -> Unit = {}
 ) {
+    val language = LocalAppLanguage.current
     val repository = AuditTraceabilityRepository
     var severityName by rememberSaveable { mutableStateOf<String?>(null) }
     var statusName by rememberSaveable { mutableStateOf<String?>(null) }
@@ -82,27 +85,27 @@ fun AuditTrailScreen(
     ) {
         item {
             AuditHeader(
-                eyebrow = "Audit & traceability",
-                title = "Audit trail",
-                description = "Append-only record of the relevant actions of the platform: actor, action, affected object and time."
+                eyebrow = tr(language, "Audit & traceability", "Auditoría y trazabilidad"),
+                title = tr(language, "Audit trail", "Auditoría"),
+                description = tr(language, "Append-only record of the relevant actions of the platform: actor, action, affected object and time.", "Registro de acciones relevantes y evidencias del sistema.")
             )
         }
 
         item {
-            SecondaryButton(text = "Traceability records", onClick = { onOpenTraceability(null) })
+            SecondaryButton(text = tr(language, "Traceability records", "Registros de trazabilidad"), onClick = { onOpenTraceability(null) })
         }
 
         item {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 MetricTile(
-                    label = "Integrity score",
+                    label = tr(language, "Integrity score", "Índice de integridad"),
                     value = "${summary.integrityScore} %",
                     modifier = Modifier.weight(1f),
                     accent = SafeLabSuccess,
-                    supportingText = "Retained ${summary.retainedDays} days"
+                    supportingText = tr(language, "Retained ${summary.retainedDays} days", "Retenido ${summary.retainedDays} días")
                 )
                 MetricTile(
-                    label = "Total entries",
+                    label = tr(language, "Total entries", "Total de registros"),
                     value = summary.totalEntries.toString(),
                     modifier = Modifier.weight(1f),
                     accent = SafeLabBlue
@@ -111,32 +114,31 @@ fun AuditTrailScreen(
         }
 
         item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricTile(
+                        label = tr(language, "Reviewed", "Revisados"),
+                        value = summary.reviewedEntries.toString(),
+                        modifier = Modifier.weight(1f), accent = SafeLabAccent
+                    )
+                    MetricTile(
+                        label = tr(language, "Pending", "Pendientes"),
+                        value = summary.pendingEntries.toString(),
+                        modifier = Modifier.weight(1f), accent = SafeLabWarning
+                    )
+                }
                 MetricTile(
-                    label = "Reviewed",
-                    value = summary.reviewedEntries.toString(),
-                    modifier = Modifier.weight(1f),
-                    accent = SafeLabAccent
-                )
-                MetricTile(
-                    label = "Pending",
-                    value = summary.pendingEntries.toString(),
-                    modifier = Modifier.weight(1f),
-                    accent = SafeLabWarning
-                )
-                MetricTile(
-                    label = "Critical",
+                    label = tr(language, "Critical", "Críticos"),
                     value = summary.criticalEvents.toString(),
-                    modifier = Modifier.weight(1f),
                     accent = SafeLabDanger
                 )
             }
         }
 
         item {
-            AuditSectionCard(eyebrow = "Latest", title = "Latest events") {
+            AuditSectionCard(eyebrow = tr(language, "Latest", "Recientes"), title = tr(language, "Latest events", "Últimos eventos")) {
                 if (latest.isEmpty()) {
-                    NoDataState(title = "No events", message = "No audit events have been registered yet.")
+                    NoDataState(title = tr(language, "No events", "No hay eventos"), message = tr(language, "No audit events have been registered yet.", "Aún no se han registrado eventos de auditoría."))
                 } else {
                     latest.forEachIndexed { index, entry ->
                         TimelineRow(
@@ -151,25 +153,25 @@ fun AuditTrailScreen(
         }
 
         item {
-            AuditSectionCard(title = "Filters") {
+            AuditSectionCard(title = tr(language, "Filters", "Filtros")) {
                 OutlinedTextField(
                     value = query,
                     onValueChange = { query = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Search actor, action or record") },
+                    label = { Text(tr(language, "Search actor, action or record", "Buscar actor, acción o registro")) },
                     singleLine = true,
                     shape = RoundedCornerShape(14.dp)
                 )
-                FieldLabel("Severity")
+                FieldLabel(tr(language, "Severity", "Severidad"))
                 OptionChips(
-                    options = listOf<Pair<String?, String>>(null to "All") +
+                    options = listOf<Pair<String?, String>>(null to tr(language, "All", "Todos")) +
                         AuditSeverity.entries.reversed().map { it.name to it.label },
                     selected = severityName,
                     onSelected = { severityName = it }
                 )
-                FieldLabel("Review status")
+                FieldLabel(tr(language, "Review status", "Estado de revisión"))
                 OptionChips(
-                    options = listOf<Pair<String?, String>>(null to "All") +
+                    options = listOf<Pair<String?, String>>(null to tr(language, "All", "Todos")) +
                         AuditStatus.entries.map { it.name to it.label },
                     selected = statusName,
                     onSelected = { statusName = it }
@@ -183,7 +185,7 @@ fun AuditTrailScreen(
 
         if (trail.isEmpty()) {
             item {
-                NoDataState(title = "No audit entries", message = "No audit entries match the selected filters.")
+                NoDataState(title = tr(language, "No audit entries", "No hay registros de auditoría"), message = tr(language, "No audit entries match the selected filters.", "No hay registros que coincidan con los filtros seleccionados."))
             }
         } else {
             items(trail, key = { it.auditId }) { entry ->
@@ -196,7 +198,7 @@ fun AuditTrailScreen(
                     onReview = {
                         repository.reviewEntry(entry.auditId)
                             .onSuccess {
-                                message = "Review of ${entry.auditId} registered as ${it.auditId}."
+                                message = tr(language, "Review of ${entry.auditId} registered as ${it.auditId}.", "La revisión de ${entry.auditId} fue registrada como ${it.auditId}.")
                                 isError = false
                             }
                             .onFailure {

@@ -1,5 +1,6 @@
 package pe.edu.upc.safelab.boundedcontext.dashboardoverview.presentation.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -14,6 +15,10 @@ private enum class DashboardDestination {
 @Composable
 fun DashboardOverviewEntryScreen() {
     var destination by rememberSaveable { mutableStateOf(DashboardDestination.OVERVIEW) }
+
+    BackHandler(enabled = destination == DashboardDestination.TRENDS) {
+        destination = DashboardDestination.OVERVIEW
+    }
 
     when (destination) {
         DashboardDestination.OVERVIEW -> DashboardScreen(

@@ -26,6 +26,8 @@ import pe.edu.upc.safelab.boundedcontext.alertsincidents.presentation.components
 import pe.edu.upc.safelab.boundedcontext.alertsincidents.presentation.components.NoDataState
 import pe.edu.upc.safelab.boundedcontext.alertsincidents.presentation.components.OptionChips
 import pe.edu.upc.safelab.ui.theme.SafeLabBlue
+import pe.edu.upc.safelab.common.LocalAppLanguage
+import pe.edu.upc.safelab.common.tr
 import pe.edu.upc.safelab.ui.theme.SafeLabDanger
 import pe.edu.upc.safelab.ui.theme.SafeLabPrimary
 import pe.edu.upc.safelab.ui.theme.SafeLabWarning
@@ -35,6 +37,7 @@ fun IncidentsScreen(
     onBack: () -> Unit = {},
     onOpenIncident: (String) -> Unit = {}
 ) {
+    val language = LocalAppLanguage.current
     val repository = AlertsIncidentsRepository
     var statusName by rememberSaveable { mutableStateOf<String?>(null) }
     var severityName by rememberSaveable { mutableStateOf<String?>(null) }
@@ -53,9 +56,9 @@ fun IncidentsScreen(
     ) {
         item {
             AlertsHeader(
-                eyebrow = "Incident history",
-                title = "Incidents",
-                description = "Incidents opened from alerts, with their status, responsible and corrective actions.",
+                eyebrow = tr(language, "Incident history", "Historial de incidentes"),
+                title = tr(language, "Incidents", "Incidentes"),
+                description = tr(language, "Incidents opened from alerts, with their status, responsible and corrective actions.", "Seguimiento de incidentes y su estado actual."),
                 onBack = onBack
             )
         }
@@ -95,7 +98,7 @@ fun IncidentsScreen(
         }
 
         item {
-            AlertsSectionCard(title = "Filters") {
+            AlertsSectionCard(title = tr(language, "Filters", "Filtros")) {
                 FieldLabel("Status")
                 OptionChips(
                     options = listOf<Pair<String?, String>>(null to "All") +
@@ -117,13 +120,13 @@ fun IncidentsScreen(
             item {
                 if (all.isEmpty()) {
                     NoDataState(
-                        title = "No incident history",
+                        title = tr(language, "No incident history", "No hay historial de incidentes"),
                         message = "No alerts or incidents have been registered yet."
                     )
                 } else {
                     NoDataState(
-                        title = "No incidents found",
-                        message = "No incidents match the selected filters."
+                        title = tr(language, "No incidents found", "No se encontraron incidentes"),
+                        message = tr(language, "No incidents match the selected filters.", "No hay incidentes que coincidan con los filtros seleccionados.")
                     )
                 }
             }
