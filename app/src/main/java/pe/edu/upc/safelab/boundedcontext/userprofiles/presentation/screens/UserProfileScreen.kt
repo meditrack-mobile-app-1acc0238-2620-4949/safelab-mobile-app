@@ -1,6 +1,7 @@
 package pe.edu.upc.safelab.boundedcontext.userprofiles.presentation.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,6 +50,7 @@ import pe.edu.upc.safelab.common.tr
 fun UserProfileScreen(
     profile: UserProfile,
     language: String,
+    onOpenSubscription: () -> Unit,
     onSave: (ProfileChanges) -> ProfileSaveResult
 ) {
     var editing by remember(profile.userId) { mutableStateOf(false) }
@@ -236,6 +238,57 @@ fun UserProfileScreen(
                         if (message != null) {
                             Text(message.orEmpty(), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
                         }
+                    }
+                }
+            }
+        }
+
+        // Subscription has its own BC. This card only navigates to its read-only screen.
+        if (!editing) {
+            item {
+                Surface(
+                    modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenSubscription),
+                    shape = RoundedCornerShape(22.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 1.dp,
+                    shadowElevation = 2.dp
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(18.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier.size(46.dp)
+                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f), RoundedCornerShape(13.dp)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                painter = painterResource(R.drawable.ic_nav_reports),
+                                contentDescription = null,
+                                modifier = Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text(
+                                tr(language, "Subscription & billing", "Suscripción y pagos"),
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                tr(language, "Current plan, payment history and upcoming invoice.",
+                                    "Plan actual, historial de pagos y próximo recibo."),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Icon(
+                            painter = painterResource(R.drawable.ic_nav_chevron),
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
                 }
             }
