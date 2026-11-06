@@ -1,5 +1,7 @@
 package pe.edu.upc.safelab.boundedcontext.alertsincidents.presentation.screens
 
+import pe.edu.upc.safelab.common.tr
+import pe.edu.upc.safelab.common.LocalAppLanguage
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
@@ -38,6 +40,7 @@ fun AlertDetailScreen(
     onBack: () -> Unit = {},
     onOpenIncident: (String) -> Unit = {}
 ) {
+    val language = LocalAppLanguage.current
     val repository = AlertsIncidentsRepository
     val alert = repository.findAlert(alertId)
     var message by rememberSaveable(alertId) { mutableStateOf<String?>(null) }
@@ -59,18 +62,18 @@ fun AlertDetailScreen(
     ) {
         item {
             AlertsHeader(
-                eyebrow = "Alert detail",
+                eyebrow = tr(language, "Alert detail", "Detalle de alerta"),
                 title = alert?.title ?: "Alert",
-                description = alert?.message ?: "Detail of the alert detected by the monitoring service.",
+                description = alert?.message ?: tr(language, "Detail of the alert detected by the monitoring service.", "Detalle de la alerta detectada por el sistema de monitoreo."),
                 onBack = onBack,
-                backLabel = "Back"
+                backLabel = tr(language, "Back", "Volver")
             )
         }
 
         if (alert == null) {
             item {
                 NoDataState(
-                    title = "Alert not found",
+                    title = tr(language, "Alert not found", "Alerta no encontrada"),
                     message = "The requested alert cannot be found or is no longer available."
                 )
             }
@@ -81,7 +84,7 @@ fun AlertDetailScreen(
         val incident = repository.incidentOfAlert(alert.alertId)
 
         item {
-            AlertsSectionCard(eyebrow = alert.alertId, title = "Detected problem") {
+            AlertsSectionCard(eyebrow = alert.alertId, title = tr(language, "Detected problem", "Problema detectado")) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     StatusChip(alert.severity.label, severityColor(alert.severity))
                     StatusChip(alert.status.label, alertStatusColor(alert.status))
@@ -99,7 +102,7 @@ fun AlertDetailScreen(
         }
 
         item {
-            AlertsSectionCard(eyebrow = "Attention", title = "Alert handling") {
+            AlertsSectionCard(eyebrow = tr(language, "Attention", "Atención"), title = tr(language, "Alert handling", "Gestión de alerta")) {
                 if (alert.acknowledgedBy != null) {
                     DetailLine("Attended by", alert.acknowledgedBy)
                     DetailLine("Attended at", alert.acknowledgedAt ?: "-")
@@ -143,7 +146,7 @@ fun AlertDetailScreen(
         }
 
         item {
-            AlertsSectionCard(eyebrow = "Team", title = "Share with the team") {
+            AlertsSectionCard(eyebrow = tr(language, "Team", "Equipo"), title = tr(language, "Share with the team", "Compartir con el equipo")) {
                 DetailLine(
                     "Shared with",
                     if (alert.sharedWith.isEmpty()) "Nobody yet" else alert.sharedWith.joinToString(", ")

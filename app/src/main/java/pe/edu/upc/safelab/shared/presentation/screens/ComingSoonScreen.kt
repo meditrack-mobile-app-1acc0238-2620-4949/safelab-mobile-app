@@ -26,12 +26,15 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pe.edu.upc.safelab.shared.domain.model.AppModule
+import pe.edu.upc.safelab.common.LocalAppLanguage
+import pe.edu.upc.safelab.common.tr
 
 @Composable
 fun ComingSoonScreen(
     module: AppModule,
     modifier: Modifier = Modifier
 ) {
+    val language = LocalAppLanguage.current
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -60,7 +63,7 @@ fun ComingSoonScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = module.title.uppercase(),
+                    text = module.title(language).uppercase(),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.ExtraBold,
@@ -70,7 +73,7 @@ fun ComingSoonScreen(
                 Spacer(modifier = Modifier.height(10.dp))
 
                 Text(
-                    text = module.shortLabel,
+                    text = module.shortLabel(language),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                     fontWeight = FontWeight.ExtraBold,
@@ -84,7 +87,7 @@ fun ComingSoonScreen(
                     color = Color(0xFFFFE8B3)
                 ) {
                     Text(
-                        text = "EN DESARROLLO · PRÓXIMAMENTE",
+                        text = tr(language, "COMING SOON", "PRÓXIMAMENTE"),
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp),
                         color = Color(0xFF8A4B00),
                         style = MaterialTheme.typography.labelMedium,
@@ -95,8 +98,7 @@ fun ComingSoonScreen(
                 Spacer(modifier = Modifier.height(20.dp))
 
                 Text(
-                    text = "La navegación compartida ya está disponible en develop. " +
-                        "La interfaz y el contenido funcional de este módulo se implementarán en su rama asignada.",
+                    text = tr(language, "This module will be available in a future update.", "Este módulo estará disponible en una próxima actualización."),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center
@@ -114,7 +116,7 @@ fun ComingSoonScreen(
                         color = MaterialTheme.colorScheme.surfaceVariant
                     ) {
                         Text(
-                            text = module.branch,
+                            text = "SafeLab",
                             modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,

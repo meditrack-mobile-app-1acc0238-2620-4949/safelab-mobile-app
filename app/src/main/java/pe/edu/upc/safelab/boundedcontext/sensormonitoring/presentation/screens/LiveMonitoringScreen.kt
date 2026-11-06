@@ -48,6 +48,8 @@ import pe.edu.upc.safelab.boundedcontext.sensormonitoring.presentation.component
 import pe.edu.upc.safelab.boundedcontext.sensormonitoring.presentation.components.sensorStatusColor
 import pe.edu.upc.safelab.boundedcontext.sensormonitoring.presentation.components.targetRangeLabel
 import pe.edu.upc.safelab.ui.theme.SafeLabDanger
+import pe.edu.upc.safelab.common.LocalAppLanguage
+import pe.edu.upc.safelab.common.tr
 import pe.edu.upc.safelab.ui.theme.SafeLabPrimary
 import pe.edu.upc.safelab.ui.theme.SafeLabSuccess
 import pe.edu.upc.safelab.ui.theme.SafeLabTheme
@@ -64,6 +66,7 @@ fun LiveMonitoringScreen(
     onOpenDetail: (String) -> Unit = {},
     onOpenOffline: () -> Unit = {}
 ) {
+    val language = LocalAppLanguage.current
     val repository = SensorMonitoringRepository
     var query by rememberSaveable { mutableStateOf("") }
     var typeFilter by rememberSaveable { mutableStateOf<String?>(null) }
@@ -78,11 +81,11 @@ fun LiveMonitoringScreen(
     )
     val hasFilters = query.isNotBlank() || typeFilter != null || statusFilter != null
 
-    val typeOptions = listOf(FilterOption(null, "All types (${all.size})")) +
+    val typeOptions = listOf(FilterOption(null, tr(language, "All types (${all.size})", "Todos los tipos (${all.size})"))) +
         SensorType.entries.map { type ->
             FilterOption(type.name, "${type.label} (${all.count { it.type == type }})")
         }
-    val statusOptions = listOf(FilterOption(null, "All readings (${all.size})")) +
+    val statusOptions = listOf(FilterOption(null, tr(language, "All readings (${all.size})", "Todas las lecturas (${all.size})"))) +
         ReadingStatus.entries.map { status ->
             FilterOption(
                 value = status.name,
@@ -100,9 +103,9 @@ fun LiveMonitoringScreen(
     ) {
         item {
             SensorHeader(
-                eyebrow = "Sensor monitoring",
-                title = "Live monitoring",
-                description = "Latest reading of every sensor against its allowed range. Sensors with problems are highlighted."
+                eyebrow = tr(language, "Sensor monitoring", "Sensores"),
+                title = tr(language, "Live monitoring", "Monitoreo en vivo"),
+                description = tr(language, "Latest reading of every sensor against its allowed range. Sensors with problems are highlighted.", "Última lectura de cada sensor y su estado general.")
             )
         }
 
@@ -110,13 +113,13 @@ fun LiveMonitoringScreen(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     MetricTile(
-                        label = "Total",
+                        label = tr(language, "Total", "Total"),
                         value = summary.total.toString(),
                         modifier = Modifier.weight(1f),
                         accent = SafeLabPrimary
                     )
                     MetricTile(
-                        label = "Normal",
+                        label = tr(language, "Normal", "Normal"),
                         value = summary.normal.toString(),
                         modifier = Modifier.weight(1f),
                         accent = SafeLabSuccess
@@ -124,13 +127,13 @@ fun LiveMonitoringScreen(
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     MetricTile(
-                        label = "Out of range",
+                        label = tr(language, "Out of range", "Fuera de rango"),
                         value = summary.outOfRange.toString(),
                         modifier = Modifier.weight(1f),
                         accent = SafeLabWarning
                     )
                     MetricTile(
-                        label = "Offline",
+                        label = tr(language, "Offline", "Sin conexión"),
                         value = summary.offline.toString(),
                         modifier = Modifier.weight(1f),
                         accent = SafeLabDanger
@@ -141,7 +144,7 @@ fun LiveMonitoringScreen(
 
         item {
             OutlinedButton(onClick = onOpenOffline, modifier = Modifier.fillMaxWidth()) {
-                Text("Offline sensors (${summary.offline})", fontWeight = FontWeight.Bold, maxLines = 1)
+                Text(tr(language, "Offline sensors (${summary.offline})", "Sensores sin conexión (${summary.offline})"), fontWeight = FontWeight.Bold, maxLines = 1)
             }
         }
 
@@ -149,7 +152,7 @@ fun LiveMonitoringScreen(
             SearchField(
                 value = query,
                 onValueChange = { query = it },
-                placeholder = "Sensor, code or responsible"
+                placeholder = tr(language, "Sensor, code or responsible", "Sensor, código o responsable")
             )
         }
 
@@ -177,7 +180,7 @@ fun LiveMonitoringScreen(
         if (visible.isEmpty()) {
             item {
                 NoDataState(
-                    title = "No sensors found",
+                    title = tr(language, "No sensors found", "No se encontraron sensores"),
                     message = "No sensor matches the search and filters. Clear the filters to see all sensors."
                 )
             }

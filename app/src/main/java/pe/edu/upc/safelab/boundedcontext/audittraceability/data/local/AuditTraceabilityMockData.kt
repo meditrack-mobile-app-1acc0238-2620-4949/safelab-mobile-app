@@ -1,6 +1,7 @@
 package pe.edu.upc.safelab.boundedcontext.audittraceability.data.local
 
 import pe.edu.upc.safelab.boundedcontext.audittraceability.domain.model.AuditEntry
+import pe.edu.upc.safelab.boundedcontext.identityaccess.data.local.IdentityAccessMockData
 import pe.edu.upc.safelab.boundedcontext.audittraceability.domain.model.AuditSeverity
 import pe.edu.upc.safelab.boundedcontext.audittraceability.domain.model.AuditStatus
 import pe.edu.upc.safelab.boundedcontext.audittraceability.domain.model.ChangeRecord
@@ -20,8 +21,8 @@ import pe.edu.upc.safelab.boundedcontext.audittraceability.domain.model.Traceabi
  */
 object AuditTraceabilityMockData {
 
-    /** Signed-in user of the seed (currentUser). */
-    const val CURRENT_USER = "Dr. Maria Lopez"
+    /** Active demonstration account; historical actors below remain unchanged. */
+    val CURRENT_USER: String = IdentityAccessMockData.administrator.displayName
     const val CURRENT_DEVICE = "SafeLab mobile app"
 
     const val INTEGRITY_SCORE = 99.4
@@ -174,7 +175,7 @@ object AuditTraceabilityMockData {
     val commandHistory = listOf(
         CommandRecord("CMD-081", "Adjust cooling level", "Cold Chamber A-01", "Lab Technician", CommandResult.CONFIRMED),
         CommandRecord("CMD-080", "Restart sensor gateway", "Gateway S-02", "SafeLab Administrator", CommandResult.CONFIRMED),
-        CommandRecord("CMD-079", "Cancel pending actuator command", "Freezer B-02", "Dr. Maria Lopez", CommandResult.CANCELLED)
+        CommandRecord("CMD-079", "Return to normal cooling (cancelled)", "Freezer B-02", "Dr. Maria Lopez", CommandResult.CANCELLED)
     )
 
     val traceabilityHealth = TraceabilityHealth(
