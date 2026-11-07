@@ -38,6 +38,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pe.edu.upc.safelab.R
+import pe.edu.upc.safelab.shared.infrastructure.data.MultiTenantStore
 import pe.edu.upc.safelab.boundedcontext.userprofiles.domain.model.ProfileChanges
 import pe.edu.upc.safelab.boundedcontext.userprofiles.domain.model.ProfileSaveResult
 import pe.edu.upc.safelab.boundedcontext.userprofiles.domain.model.UserProfile
@@ -109,7 +110,7 @@ fun UserProfileScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
-                                buildAvatarInitials(profile.firstNames),
+                                buildAvatarInitials(profile.firstNames, profile.lastNames),
                                 color = Color.White,
                                 fontWeight = FontWeight.Black,
                                 style = MaterialTheme.typography.titleLarge
@@ -229,12 +230,11 @@ fun UserProfileScreen(
                         ProfileLine(tr(language, "City", "Ciudad"), profile.city.ifBlank { "—" })
                         ProfileLine(tr(language, "Job title", "Cargo"), profile.jobTitle.ifBlank { "—" })
                         ProfileLine(tr(language, "Account role", "Rol de cuenta"),
-                            when (profile.role) {
-                                "ADMINISTRATOR" -> tr(language, "Administrator", "Administrador")
-                                "OPERATOR" -> tr(language, "Operator", "Operador")
-                                else -> profile.role
-                            }
-                        )
+                            MultiTenantStore.roleName(profile.role, language))
+                        val organizationId = MultiTenantStore.user(profile.userId)?.optString("organizationId").orEmpty()
+                        if (organizationId.isNotBlank() && organizationId != "null") {
+                            ProfileLine(tr(language, "Organization", "Empresa"), MultiTenantStore.orgName(organizationId))
+                        }
                         if (message != null) {
                             Text(message.orEmpty(), color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.bodySmall)
                         }
@@ -243,8 +243,8 @@ fun UserProfileScreen(
             }
         }
 
-        // Subscription has its own BC. This card only navigates to its read-only screen.
-        if (!editing) {
+        // Billing is visible only to a manager or a platform administrator.
+        if (!editing && MultiTenantStore.user(profile.userId)?.optString("role") in listOf("organizationAdmin", "platformAdmin")) {
             item {
                 Surface(
                     modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenSubscription),

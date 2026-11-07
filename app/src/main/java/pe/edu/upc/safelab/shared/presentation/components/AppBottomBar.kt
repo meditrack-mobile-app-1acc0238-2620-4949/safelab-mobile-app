@@ -19,13 +19,14 @@ import pe.edu.upc.safelab.shared.domain.model.MobileTab
 fun AppBottomBar(
     selectedTab: MobileTab,
     language: String,
-    onTabSelected: (MobileTab) -> Unit
+    onTabSelected: (MobileTab) -> Unit,
+    allowedTabs: Set<MobileTab> = MobileTab.entries.toSet()
 ) {
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.surface,
         tonalElevation = 5.dp
     ) {
-        MobileTab.entries.forEach { tab ->
+        MobileTab.entries.filter { it in allowedTabs }.forEach { tab ->
             NavigationBarItem(
                 selected = tab == selectedTab,
                 onClick = { onTabSelected(tab) },

@@ -1,0 +1,271 @@
+{
+  "groups": [
+    {
+      "id": "users",
+      "permissions": [
+        "users.view",
+        "users.invite",
+        "users.permissions.manage"
+      ]
+    },
+    {
+      "id": "assets",
+      "permissions": [
+        "assets.view",
+        "assets.manage"
+      ]
+    },
+    {
+      "id": "sensors",
+      "permissions": [
+        "sensors.view",
+        "sensors.configure"
+      ]
+    },
+    {
+      "id": "maintenance",
+      "permissions": [
+        "maintenance.view",
+        "maintenance.manage"
+      ]
+    },
+    {
+      "id": "incidents",
+      "permissions": [
+        "incidents.view",
+        "incidents.create",
+        "alerts.acknowledge",
+        "incidents.resolve"
+      ]
+    },
+    {
+      "id": "compliance",
+      "permissions": [
+        "compliance.view",
+        "compliance.manage"
+      ]
+    },
+    {
+      "id": "actuation",
+      "permissions": [
+        "actuation.view",
+        "actuation.execute"
+      ]
+    },
+    {
+      "id": "dashboard",
+      "permissions": [
+        "dashboard.view"
+      ]
+    },
+    {
+      "id": "reports",
+      "permissions": [
+        "reports.view",
+        "reports.export"
+      ]
+    },
+    {
+      "id": "audit",
+      "permissions": [
+        "audit.view"
+      ]
+    }
+  ],
+  "defaults": {
+    "bioclinicalCoordinator": [
+      "dashboard.view",
+      "assets.view",
+      "sensors.view",
+      "incidents.view",
+      "incidents.create",
+      "maintenance.view",
+      "alerts.acknowledge",
+      "incidents.resolve",
+      "compliance.view",
+      "reports.view"
+    ],
+    "labTechnician": [
+      "dashboard.view",
+      "assets.view",
+      "sensors.view",
+      "incidents.view",
+      "incidents.create"
+    ],
+    "pharmaOperationsCoordinator": [
+      "dashboard.view",
+      "assets.view",
+      "sensors.view",
+      "incidents.view",
+      "incidents.create",
+      "maintenance.view",
+      "alerts.acknowledge",
+      "incidents.resolve",
+      "compliance.view",
+      "reports.view",
+      "assets.manage"
+    ],
+    "pharmaTechnician": [
+      "dashboard.view",
+      "assets.view",
+      "sensors.view",
+      "incidents.view",
+      "incidents.create"
+    ],
+    "complianceOfficer": [
+      "dashboard.view",
+      "assets.view",
+      "sensors.view",
+      "incidents.view",
+      "incidents.create",
+      "compliance.view",
+      "compliance.manage",
+      "alerts.acknowledge",
+      "incidents.resolve",
+      "reports.view",
+      "reports.export",
+      "audit.view",
+      "maintenance.view"
+    ],
+    "maintenanceOperator": [
+      "dashboard.view",
+      "assets.view",
+      "sensors.view",
+      "incidents.view",
+      "incidents.create",
+      "maintenance.view",
+      "maintenance.manage",
+      "actuation.view"
+    ]
+  },
+  "grantable": {
+    "bioclinicalCoordinator": [
+      "dashboard.view",
+      "assets.view",
+      "sensors.view",
+      "incidents.view",
+      "incidents.create",
+      "maintenance.view",
+      "alerts.acknowledge",
+      "incidents.resolve",
+      "compliance.view",
+      "reports.view",
+      "assets.manage",
+      "sensors.configure",
+      "maintenance.manage",
+      "compliance.manage",
+      "reports.export",
+      "audit.view",
+      "actuation.view"
+    ],
+    "labTechnician": [
+      "dashboard.view",
+      "assets.view",
+      "sensors.view",
+      "incidents.view",
+      "incidents.create",
+      "maintenance.view",
+      "alerts.acknowledge",
+      "compliance.view",
+      "reports.view"
+    ],
+    "pharmaOperationsCoordinator": [
+      "dashboard.view",
+      "assets.view",
+      "sensors.view",
+      "incidents.view",
+      "incidents.create",
+      "maintenance.view",
+      "alerts.acknowledge",
+      "incidents.resolve",
+      "compliance.view",
+      "reports.view",
+      "assets.manage",
+      "sensors.configure",
+      "maintenance.manage",
+      "compliance.manage",
+      "reports.export",
+      "audit.view",
+      "actuation.view"
+    ],
+    "pharmaTechnician": [
+      "dashboard.view",
+      "assets.view",
+      "sensors.view",
+      "incidents.view",
+      "incidents.create",
+      "maintenance.view",
+      "alerts.acknowledge",
+      "compliance.view",
+      "reports.view"
+    ],
+    "complianceOfficer": [
+      "dashboard.view",
+      "assets.view",
+      "sensors.view",
+      "incidents.view",
+      "incidents.create",
+      "compliance.view",
+      "compliance.manage",
+      "alerts.acknowledge",
+      "incidents.resolve",
+      "reports.view",
+      "reports.export",
+      "audit.view",
+      "maintenance.view",
+      "actuation.view"
+    ],
+    "maintenanceOperator": [
+      "dashboard.view",
+      "assets.view",
+      "sensors.view",
+      "incidents.view",
+      "incidents.create",
+      "maintenance.view",
+      "maintenance.manage",
+      "actuation.view",
+      "sensors.configure",
+      "alerts.acknowledge",
+      "incidents.resolve",
+      "compliance.view",
+      "reports.view",
+      "audit.view",
+      "actuation.execute"
+    ]
+  },
+  "manager": [
+    "users.view",
+    "users.invite",
+    "users.permissions.manage",
+    "assets.view",
+    "assets.manage",
+    "sensors.view",
+    "maintenance.view",
+    "maintenance.manage",
+    "incidents.view",
+    "incidents.create",
+    "alerts.acknowledge",
+    "incidents.resolve",
+    "compliance.view",
+    "compliance.manage",
+    "actuation.view",
+    "dashboard.view",
+    "reports.view",
+    "reports.export",
+    "audit.view"
+  ],
+  "segmentRoles": {
+    "laboratory": [
+      "bioclinicalCoordinator",
+      "labTechnician",
+      "complianceOfficer",
+      "maintenanceOperator"
+    ],
+    "pharmaceutical": [
+      "pharmaOperationsCoordinator",
+      "pharmaTechnician",
+      "complianceOfficer",
+      "maintenanceOperator"
+    ]
+  }
+}

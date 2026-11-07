@@ -32,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pe.edu.upc.safelab.R
+import pe.edu.upc.safelab.shared.presentation.components.ThemeModeButton
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,19 +92,7 @@ fun AppTopBar(
             }
         },
         actions = {
-            IconButton(
-                onClick = onThemeToggle,
-                modifier = Modifier.size(39.dp).semantics {
-                    contentDescription = if (isDarkTheme) "Light theme" else "Dark theme"
-                }
-            ) {
-                Text(
-                    text = if (isDarkTheme) "☀" else "☾",
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontSize = 22.sp
-                )
-            }
+            ThemeModeButton(isDarkTheme, language, onThemeToggle)
             Surface(
                 modifier = Modifier.semantics {
                     contentDescription = if (language == "ES") "Switch to English" else "Cambiar a español"
