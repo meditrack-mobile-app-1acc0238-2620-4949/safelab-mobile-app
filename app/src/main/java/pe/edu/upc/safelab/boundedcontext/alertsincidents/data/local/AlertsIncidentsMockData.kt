@@ -1,7 +1,7 @@
 package pe.edu.upc.safelab.boundedcontext.alertsincidents.data.local
 
 import pe.edu.upc.safelab.boundedcontext.alertsincidents.domain.model.Alert
-import pe.edu.upc.safelab.boundedcontext.identityaccess.data.local.IdentityAccessMockData
+import pe.edu.upc.safelab.common.DemoAccountIds
 import pe.edu.upc.safelab.boundedcontext.alertsincidents.domain.model.AlertRule
 import pe.edu.upc.safelab.boundedcontext.alertsincidents.domain.model.AlertStatus
 import pe.edu.upc.safelab.boundedcontext.alertsincidents.domain.model.CorrectiveAction
@@ -20,7 +20,7 @@ data class SensorReference(
 
 object AlertsIncidentsMockData {
 
-    val CURRENT_USER: String = IdentityAccessMockData.administrator.displayName
+    val CURRENT_USER: String = DemoAccountIds.ADMIN_DISPLAY_NAME
 
     val teamMembers = listOf(
         "Carlos Mendoza",

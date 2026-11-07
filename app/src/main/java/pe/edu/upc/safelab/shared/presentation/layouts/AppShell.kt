@@ -24,6 +24,7 @@ fun AppShell(
     onThemeToggle: () -> Unit,
     avatarInitials: String,
     onProfileClick: () -> Unit,
+    allowedTabs: Set<MobileTab> = MobileTab.entries.toSet(),
     content: @Composable () -> Unit
 ) {
     Scaffold(
@@ -32,7 +33,7 @@ fun AppShell(
             AppTopBar(title, language, isDarkTheme, onBack, onLanguageToggle, onThemeToggle, avatarInitials, onProfileClick)
         },
         bottomBar = {
-            AppBottomBar(selectedTab, language, onTabSelected)
+            AppBottomBar(selectedTab, language, onTabSelected, allowedTabs)
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {

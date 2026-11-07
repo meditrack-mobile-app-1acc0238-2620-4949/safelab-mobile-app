@@ -8,11 +8,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import pe.edu.upc.safelab.navigation.SafeLabApp
+import pe.edu.upc.safelab.shared.infrastructure.data.MultiTenantStore
 import pe.edu.upc.safelab.ui.theme.SafeLabTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        MultiTenantStore.initialize(applicationContext)
 
         setContent {
             var darkTheme by rememberSaveable { mutableStateOf(false) }
