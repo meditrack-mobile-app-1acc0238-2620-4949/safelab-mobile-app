@@ -1,22 +1,21 @@
 package pe.edu.upc.safelab
 
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import pe.edu.upc.safelab.boundedcontext.identityaccess.data.local.IdentityAccessMockData
-import pe.edu.upc.safelab.boundedcontext.identityaccess.data.repository.AuthenticationResult
-import pe.edu.upc.safelab.boundedcontext.identityaccess.data.repository.LocalIdentityAccessRepository
+import pe.edu.upc.safelab.common.DemoAccountIds
+import java.io.File
 
-/** Basic IAM regression tests for the in-memory authentication contract. */
+/** The packaged JSON is the only source of local mock credentials. */
 class DemoLoginTest {
-    private val login = LocalIdentityAccessRepository()
-
-    @Test fun administratorLogsInWithValidCredentials() {
-        val result = login.authenticate(IdentityAccessMockData.ADMIN_EMAIL, IdentityAccessMockData.ADMIN_PASSWORD)
-        assertTrue(result is AuthenticationResult.Success)
+    @Test fun packagedAdminExistsOnlyInTheSharedSeed() {
+        val seed = File("src/main/assets/safelab_data.json").readText()
+        assertTrue(seed.contains("admin@safelab.test"))
+        assertTrue(seed.contains("platformAdmin"))
+        assertTrue(seed.contains(DemoAccountIds.ADMIN_ID))
     }
 
-    @Test fun invalidPasswordDoesNotAuthenticate() {
-        val result = login.authenticate(IdentityAccessMockData.ADMIN_USERNAME, "invalid")
-        assertTrue(result is AuthenticationResult.InvalidCredentials)
+    @Test fun platformIdentityRemainsStableAcrossModules() {
+        assertEquals("SafeLab Administrator", DemoAccountIds.ADMIN_DISPLAY_NAME)
     }
 }

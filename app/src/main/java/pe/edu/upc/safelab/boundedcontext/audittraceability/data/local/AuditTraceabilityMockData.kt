@@ -1,7 +1,7 @@
 package pe.edu.upc.safelab.boundedcontext.audittraceability.data.local
 
 import pe.edu.upc.safelab.boundedcontext.audittraceability.domain.model.AuditEntry
-import pe.edu.upc.safelab.boundedcontext.identityaccess.data.local.IdentityAccessMockData
+import pe.edu.upc.safelab.common.DemoAccountIds
 import pe.edu.upc.safelab.boundedcontext.audittraceability.domain.model.AuditSeverity
 import pe.edu.upc.safelab.boundedcontext.audittraceability.domain.model.AuditStatus
 import pe.edu.upc.safelab.boundedcontext.audittraceability.domain.model.ChangeRecord
@@ -22,7 +22,7 @@ import pe.edu.upc.safelab.boundedcontext.audittraceability.domain.model.Traceabi
 object AuditTraceabilityMockData {
 
     /** Active demonstration account; historical actors below remain unchanged. */
-    val CURRENT_USER: String = IdentityAccessMockData.administrator.displayName
+    val CURRENT_USER: String = DemoAccountIds.ADMIN_DISPLAY_NAME
     const val CURRENT_DEVICE = "SafeLab mobile app"
 
     const val INTEGRITY_SCORE = 99.4

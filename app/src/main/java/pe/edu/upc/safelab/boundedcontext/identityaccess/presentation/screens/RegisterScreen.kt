@@ -1,35 +1,21 @@
 package pe.edu.upc.safelab.boundedcontext.identityaccess.presentation.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import pe.edu.upc.safelab.boundedcontext.identityaccess.data.repository.LocalIdentityAccessRepository
+import pe.edu.upc.safelab.shared.infrastructure.data.MultiTenantStore
 import pe.edu.upc.safelab.boundedcontext.identityaccess.data.repository.RegistrationRequest
 import pe.edu.upc.safelab.common.tr
 
+/** Two registration modes, just as on SafeLab Web: company or invitation. */
 @Composable
 fun RegisterScreen(
     language: String,
@@ -40,218 +26,147 @@ fun RegisterScreen(
     onRegistered: (String, String, RegistrationRequest) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val repository = remember { LocalIdentityAccessRepository() }
-    var firstNames by remember { mutableStateOf("") }
-    var lastNames by remember { mutableStateOf("") }
+    var type by remember { mutableStateOf("company") }
+    var company by remember { mutableStateOf("") }
+    var ruc by remember { mutableStateOf("") }
+    var segment by remember { mutableStateOf("laboratory") }
+    var corporateEmail by remember { mutableStateOf("") }
+    var invitation by remember { mutableStateOf("") }
+    var first by remember { mutableStateOf("") }
+    var last by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var successMessage by remember { mutableStateOf<String?>(null) }
-    var generatedUsername by remember { mutableStateOf<String?>(null) }
+    var confirmation by remember { mutableStateOf("") }
+    var showPassword by remember { mutableStateOf(false) }
+    var message by remember { mutableStateOf("") }
+    var assignedUsername by remember { mutableStateOf<String?>(null) }
+    val invited = MultiTenantStore.invitation(invitation)
 
     AuthContainer(modifier = modifier) {
         AuthTopActions(language, isDarkTheme, onLanguageToggle, onThemeToggle)
-
-        Text(
-            text = tr(language, "Create account", "Crear cuenta"),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Black,
-            modifier = Modifier.padding(top = 16.dp, bottom = 18.dp)
-        )
-
-        androidx.compose.material3.Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(28.dp),
-            color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 6.dp
-        ) {
-            Column(
-                modifier = Modifier.padding(22.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                OutlinedTextField(
-                    value = firstNames,
-                    onValueChange = { firstNames = it; errorMessage = null },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(tr(language, "First names", "Nombres")) },
-                    singleLine = true,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(15.dp)
-                )
-                OutlinedTextField(
-                    value = lastNames,
-                    onValueChange = { lastNames = it; errorMessage = null },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(tr(language, "Last names", "Apellidos")) },
-                    singleLine = true,
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(15.dp)
-                )
-                OutlinedTextField(
-                    value = phone,
-                    onValueChange = { phone = it.filter(Char::isDigit).take(15); errorMessage = null },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(tr(language, "Mobile phone", "Celular")) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(15.dp)
-                )
-                OutlinedTextField(
-                    value = email,
-                    onValueChange = { email = it.trim(); errorMessage = null },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(tr(language, "Email", "Correo")) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(15.dp)
-                )
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it; errorMessage = null },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(tr(language, "Password", "Contraseña")) },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(15.dp)
-                )
-                OutlinedTextField(
-                    value = confirmPassword,
-                    onValueChange = { confirmPassword = it; errorMessage = null },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text(tr(language, "Confirm password", "Confirmar contraseña")) },
-                    singleLine = true,
-                    visualTransformation = PasswordVisualTransformation(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(15.dp)
-                )
-
-                Text(
-                    text = tr(
-                        language,
-                        "Password must have at least 10 characters and include letters, numbers and one of these symbols: @ % & $",
-                        "La contraseña debe tener al menos 10 caracteres e incluir letras, números y uno de estos símbolos: @ % & $"
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                if (errorMessage != null) {
-                    Text(errorMessage.orEmpty(), color = MaterialTheme.colorScheme.error, fontWeight = FontWeight.Bold)
-                }
-
-                Button(
-                    onClick = {
-                        val validation = validateRegistration(
-                            firstNames = firstNames,
-                            lastNames = lastNames,
-                            phone = phone,
-                            email = email,
-                            password = password,
-                            confirmPassword = confirmPassword,
-                            language = language
-                        )
-
-                        if (validation != null) {
-                            errorMessage = validation
-                        } else {
-                            val request = RegistrationRequest(
-                                firstNames = firstNames,
-                                lastNames = lastNames,
-                                phone = phone,
-                                email = email,
-                                password = password
-                            )
-                            val result = repository.register(request)
-                            if (result.successful) {
-                                if (result.userId != null && result.generatedUsername != null) {
-                                    generatedUsername = result.generatedUsername
-                                    onRegistered(result.userId, result.generatedUsername, request)
-                                }
-                                successMessage = tr(
-                                    language,
-                                    "Account created. Check your email to verify and activate your account. Access will remain pending until the activation flow is completed.",
-                                    "Cuenta creada. Revisa tu correo para verificar y activar tu cuenta. El acceso seguirá pendiente hasta completar el flujo de activación."
-                                )
-                            } else {
-                                errorMessage = tr(language, result.message, when(result.message) {
-                                    "A user with this email already exists." -> "Ya existe un usuario con este correo."
-                                    else -> result.message
-                                })
-                            }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth().height(54.dp),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
-                ) {
-                    Text(tr(language, "Create account", "Crear cuenta"), fontWeight = FontWeight.Black, fontSize = 16.sp)
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = tr(language, "Already have an account?", "¿Ya tienes cuenta?"),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    TextButton(onClick = onBackToLogin) {
-                        Text(tr(language, "Sign in", "Iniciar sesión"), fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(15.dp))
+        Text(tr(language, "Create your SafeLab account", "Crea tu cuenta SafeLab"),
+            style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Black,
+            color = if (isDarkTheme) androidx.compose.ui.graphics.Color.White else MaterialTheme.colorScheme.onBackground)
+        Text(tr(language, "Register your organization or join an existing one.",
+            "Registra tu empresa o únete a una existente."),
+            color = if (isDarkTheme) androidx.compose.ui.graphics.Color(0xFFC6D4F0)
+                    else MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(13.dp))
+        Surface(shape = RoundedCornerShape(25.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 4.dp) {
+            Column(Modifier.fillMaxWidth().padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (type == "company") Button(onClick = { type = "company" }, modifier = Modifier.weight(1f)) {
+                        Text(tr(language, "Register a company", "Registrar empresa"))
+                    } else OutlinedButton(onClick = { type = "company" }, modifier = Modifier.weight(1f)) {
+                        Text(tr(language, "Register a company", "Registrar empresa"))
                     }
+                    if (type == "invitation") Button(onClick = { type = "invitation" }, modifier = Modifier.weight(1f)) {
+                        Text(tr(language, "I have an invitation", "Tengo una invitación"))
+                    } else OutlinedButton(onClick = { type = "invitation" }, modifier = Modifier.weight(1f)) {
+                        Text(tr(language, "I have an invitation", "Tengo una invitación"))
+                    }
+                }
+                if (type == "company") {
+                    Text(tr(language, "Company information", "Información empresarial"), fontWeight = FontWeight.Bold)
+                    Field(company, { company = it }, tr(language, "Legal company name", "Razón social"))
+                    Field(ruc, { ruc = it.filter(Char::isDigit).take(11) }, "RUC", KeyboardType.Number)
+                    Text(tr(language, "Business segment", "Segmento empresarial"), style = MaterialTheme.typography.labelLarge)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        FilterChip(selected = segment == "laboratory", onClick = { segment = "laboratory" },
+                            label = { Text(tr(language, "Clinical laboratory", "Laboratorio clínico")) })
+                        FilterChip(selected = segment == "pharmaceutical", onClick = { segment = "pharmaceutical" },
+                            label = { Text(tr(language, "Pharmaceutical", "Farmacéutica")) })
+                    }
+                    Field(corporateEmail, { corporateEmail = it.trim() },
+                        tr(language, "Corporate verification email", "Correo de verificación empresarial"), KeyboardType.Email)
+                } else {
+                    Text(tr(language, "Invitation details", "Datos de la invitación"), fontWeight = FontWeight.Bold)
+                    Field(invitation, { invitation = it.uppercase().trim() },
+                        tr(language, "Invitation code", "Código de invitación"))
+                    if (invited != null) {
+                        Text(MultiTenantStore.orgName(invited.optString("organizationId")), color = MaterialTheme.colorScheme.primary)
+                        Text("${tr(language, "Role", "Rol")}: ${MultiTenantStore.roleName(invited.optString("role"), language)}")
+                        Text("${tr(language, "Email", "Correo")}: ${invited.optString("email")}")
+                    }
+                }
+                HorizontalDivider()
+                Text(tr(language, "Personal information", "Información personal"), fontWeight = FontWeight.Bold)
+                Field(first, { first = it.take(70) }, tr(language, "First names", "Nombres"))
+                Field(last, { last = it.take(70) }, tr(language, "Last names", "Apellidos"))
+                Field(phone, { phone = it.filter(Char::isDigit).take(15) }, tr(language, "Mobile phone", "Celular"), KeyboardType.Phone)
+                if (type == "company") {
+                    Field(email, { email = it.trim() }, tr(language, "Email", "Correo"), KeyboardType.Email)
+                } else {
+                    Text(tr(language, "The invitation email is used automatically.",
+                        "El correo de la invitación se utiliza automáticamente."),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                }
+                OutlinedTextField(value = password, onValueChange = { password = it }, modifier = Modifier.fillMaxWidth(),
+                    label = { Text(tr(language, "Password", "Contraseña")) }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation())
+                OutlinedTextField(value = confirmation, onValueChange = { confirmation = it }, modifier = Modifier.fillMaxWidth(),
+                    label = { Text(tr(language, "Confirm password", "Confirmar contraseña")) }, singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    visualTransformation = if (showPassword) VisualTransformation.None else PasswordVisualTransformation())
+                Row { Checkbox(checked = showPassword, onCheckedChange = { showPassword = it })
+                    Text(tr(language, "Show password", "Mostrar contraseña"), modifier = Modifier.padding(top = 13.dp)) }
+                Text(tr(language, "10+ characters, including a letter, a number and one of @ % & $.",
+                    "10 o más caracteres: una letra, un número y uno de @ % & $."),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (message.isNotBlank()) Text(message, color = MaterialTheme.colorScheme.error)
+                Button(onClick = {
+                    message = ""
+                    val names = Regex("^[\\p{L} ]{2,70}$")
+                    val emailRegex = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
+                    val passwordRegex = Regex("^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[@%&$])[A-Za-z0-9@%&$]{10,}$")
+                    val emailToCheck = if (type == "company") email else invited?.optString("email").orEmpty()
+                    when {
+                        !names.matches(first.trim()) || !names.matches(last.trim()) ->
+                            message = tr(language, "Enter valid names (letters only).", "Ingresa nombres válidos (solo letras).")
+                        phone.length !in 9..15 -> message = tr(language, "Invalid phone number.", "Número de celular inválido.")
+                        !emailRegex.matches(emailToCheck) -> message = tr(language, "Invalid email.", "Correo inválido.")
+                        !passwordRegex.matches(password) || confirmation != password ->
+                            message = tr(language, "Check the password rules and confirmation.", "Verifica las reglas y confirmación de contraseña.")
+                        type == "invitation" && invited == null -> message = tr(language, "Invalid or expired invitation.", "Invitación inválida o vencida.")
+                        type == "company" && (ruc.length != 11 || company.trim().length < 4 || !emailRegex.matches(corporateEmail)) ->
+                            message = tr(language, "Review the company details, RUC and corporate email.",
+                                "Verifica la empresa, el RUC y el correo corporativo.")
+                        else -> {
+                            val username = if (type == "company") MultiTenantStore.registerCompany(
+                                company, ruc, segment, corporateEmail, first, last, phone, email, password
+                            ) else MultiTenantStore.registerEmployee(invitation, first, last, phone, password)
+                            if (username == null) message = tr(language, "Registration could not be completed. Check your details.",
+                                "No se pudo completar el registro. Verifica tus datos.")
+                            else assignedUsername = username
+                        }
+                    }
+                }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                    Text(tr(language, "Create account", "Crear cuenta"), fontWeight = FontWeight.Bold)
+                }
+                TextButton(onClick = onBackToLogin, modifier = Modifier.fillMaxWidth()) {
+                    Text(tr(language, "Already have an account? Sign in", "¿Ya tienes cuenta? Iniciar sesión"))
                 }
             }
         }
     }
-
-    if (successMessage != null) {
-        AlertDialog(
-            onDismissRequest = {
-                successMessage = null
-                onBackToLogin()
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    successMessage = null
-                    onBackToLogin()
-                }) {
-                    Text(tr(language, "Continue", "Continuar"))
-                }
-            },
-            title = { Text(tr(language, "Verification required", "Verificación requerida"), fontWeight = FontWeight.Bold) },
-            text = {
-                Text(
-                    successMessage.orEmpty() + (generatedUsername?.let { username ->
-                        "\n\n" + tr(language, "Your permanent username: ", "Tu usuario permanente: ") + username
-                    } ?: "")
-                )
-            }
-        )
-    }
+    if (assignedUsername != null) AlertDialog(
+        onDismissRequest = { assignedUsername = null; onBackToLogin() },
+        title = { Text(tr(language, "Account pending activation", "Cuenta pendiente de activación")) },
+        text = { Text(tr(language,
+            "Your company or employee account requires verification. Username: ",
+            "Tu cuenta empresarial o de empleado requiere verificación. Usuario: ") + assignedUsername) },
+        confirmButton = { TextButton(onClick = { assignedUsername = null; onBackToLogin() }) {
+            Text(tr(language, "Continue", "Continuar"))
+        }}
+    )
 }
 
-private fun validateRegistration(
-    firstNames: String,
-    lastNames: String,
-    phone: String,
-    email: String,
-    password: String,
-    confirmPassword: String,
-    language: String
-): String? {
-    val nameRegex = Regex("^[A-Za-zÁÉÍÓÚáéíóúÑñ ]{2,}$")
-    val emailRegex = Regex("^[A-Za-z0-9+_.-]+@(?:gmail|hotmail|outlook|yahoo|icloud|protonmail|live)\\.com$")
-    val passwordRegex = Regex("^(?=.*[A-Za-z])(?=.*\\d)(?=.*[@%&$])[A-Za-z\\d@%&$]{10,}$")
-
-    return when {
-        !nameRegex.matches(firstNames.trim()) -> tr(language, "Enter valid first names.", "Ingresa nombres válidos.")
-        !nameRegex.matches(lastNames.trim()) -> tr(language, "Enter valid last names.", "Ingresa apellidos válidos.")
-        phone.length !in 9..15 -> tr(language, "Enter a valid mobile phone number.", "Ingresa un número de celular válido.")
-        !emailRegex.matches(email.trim().lowercase()) -> tr(language, "Enter a valid email from a supported provider.", "Ingresa un correo válido de un proveedor admitido.")
-        !passwordRegex.matches(password) -> tr(language, "Password does not meet the required format.", "La contraseña no cumple con el formato requerido.")
-        password != confirmPassword -> tr(language, "Passwords do not match.", "Las contraseñas no coinciden.")
-        else -> null
-    }
+@Composable
+private fun Field(value: String, onChange: (String) -> Unit, label: String, keyboard: KeyboardType = KeyboardType.Text) {
+    OutlinedTextField(value = value, onValueChange = onChange, modifier = Modifier.fillMaxWidth(),
+        label = { Text(label) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = keyboard),
+        shape = RoundedCornerShape(14.dp))
 }

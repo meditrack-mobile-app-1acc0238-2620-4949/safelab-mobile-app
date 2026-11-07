@@ -37,9 +37,11 @@ fun buildDisplayName(firstNames: String, lastNames: String): String {
 }
 
 
-fun buildAvatarInitials(firstNames: String): String {
+fun buildAvatarInitials(firstNames: String, lastNames: String = ""): String {
     val parts = firstNames.trim().split(Regex("\\s+")).filter { it.isNotBlank() }
     val first = parts.getOrNull(0)?.firstOrNull()?.uppercase() ?: "S"
-    val second = parts.getOrNull(1)?.firstOrNull()?.uppercase() ?: parts.getOrNull(0)?.getOrNull(1)?.uppercase() ?: "L"
+    val second = lastNames.trim().firstOrNull()?.uppercase()
+        ?: parts.getOrNull(1)?.firstOrNull()?.uppercase()
+        ?: parts.getOrNull(0)?.getOrNull(1)?.uppercase() ?: "L"
     return "$first$second"
 }

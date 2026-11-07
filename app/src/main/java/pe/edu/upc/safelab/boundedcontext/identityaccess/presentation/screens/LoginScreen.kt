@@ -1,5 +1,6 @@
 package pe.edu.upc.safelab.boundedcontext.identityaccess.presentation.screens
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -34,6 +35,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
@@ -47,6 +52,7 @@ import pe.edu.upc.safelab.boundedcontext.identityaccess.data.repository.Authenti
 import pe.edu.upc.safelab.boundedcontext.identityaccess.data.repository.LocalIdentityAccessRepository
 import pe.edu.upc.safelab.boundedcontext.identityaccess.domain.model.AuthenticatedUser
 import pe.edu.upc.safelab.common.tr
+import pe.edu.upc.safelab.shared.presentation.components.ThemeModeButton
 
 @Composable
 fun LoginScreen(
@@ -63,7 +69,7 @@ fun LoginScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val repository = remember { LocalIdentityAccessRepository() }
 
-    AuthContainer(modifier = modifier) {
+    AuthContainer(modifier = modifier, showFlask = true) {
         AuthTopActions(language, isDarkTheme, onLanguageToggle, onThemeToggle)
         Spacer(modifier = Modifier.height(18.dp))
 
@@ -216,13 +222,15 @@ fun LoginScreen(
 }
 
 @Composable
-fun AuthContainer(modifier: Modifier = Modifier, content: @Composable ColumnScope.() -> Unit) {
+fun AuthContainer(modifier: Modifier = Modifier, showFlask: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(
                 Brush.verticalGradient(
-                    listOf(Color(0xFFF4F7FF), MaterialTheme.colorScheme.background, Color(0xFFEDE9FE))
+                    if (MaterialTheme.colorScheme.background.red < 0.2f)
+                        listOf(Color(0xFF152343), Color(0xFF0B1428), Color(0xFF0C2736))
+                    else listOf(Color(0xFFEDF2FF), Color(0xFFF4F7FF), Color(0xFFE5FAF7))
                 )
             )
     ) {
@@ -230,8 +238,25 @@ fun AuthContainer(modifier: Modifier = Modifier, content: @Composable ColumnScop
             modifier = Modifier
                 .size(220.dp)
                 .align(Alignment.TopEnd)
-                .background(Color(0xFF4F35E8).copy(alpha = 0.08f), CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.11f), CircleShape)
         )
+        if (showFlask) Canvas(modifier = Modifier.fillMaxSize()) {
+            val w = size.width; val h = size.height
+            val path = Path().apply {
+                moveTo(w * .31f, h * .15f); lineTo(w * .62f, h * .15f)
+                moveTo(w * .39f, h * .15f); lineTo(w * .39f, h * .27f)
+                lineTo(w * .20f, h * .49f); quadraticTo(w * .11f, h * .61f, w * .25f, h * .67f)
+                quadraticTo(w * .48f, h * .75f, w * .75f, h * .66f)
+                quadraticTo(w * .86f, h * .60f, w * .75f, h * .49f)
+                lineTo(w * .55f, h * .27f); lineTo(w * .55f, h * .15f)
+            }
+            drawPath(path, Color(0xFF7D8FFF).copy(alpha = 0.13f),
+                style = Stroke(width = 16f, cap = StrokeCap.Round, join = StrokeJoin.Round))
+            drawCircle(Color(0xFF38BDF8).copy(alpha = 0.10f), radius = w * .085f,
+                center = androidx.compose.ui.geometry.Offset(w * .43f, h * .60f))
+            drawCircle(Color(0xFF38BDF8).copy(alpha = 0.10f), radius = w * .038f,
+                center = androidx.compose.ui.geometry.Offset(w * .58f, h * .56f))
+        }
 
         Column(
             modifier = Modifier
@@ -256,13 +281,7 @@ fun AuthTopActions(
         horizontalArrangement = Arrangement.End,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = if (isDarkTheme) "☀" else "☾",
-            modifier = Modifier.clickable(onClick = onThemeToggle).padding(horizontal = 8.dp),
-            color = MaterialTheme.colorScheme.primary,
-            fontWeight = FontWeight.Bold,
-            fontSize = 22.sp
-        )
+        ThemeModeButton(isDarkTheme, language, onThemeToggle)
         Surface(
             modifier = Modifier.clickable(onClick = onLanguageToggle),
             shape = CircleShape,
