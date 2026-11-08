@@ -11,6 +11,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.json.JSONObject
 import pe.edu.upc.safelab.shared.infrastructure.data.MultiTenantStore
+import pe.edu.upc.safelab.shared.infrastructure.http.SafeLabApi
 import pe.edu.upc.safelab.shared.presentation.components.AppTopBar
 import pe.edu.upc.safelab.common.tr
 
@@ -287,10 +288,15 @@ private fun PlatformSettingsPanel(actor: JSONObject, language: String) {
             }, modifier = Modifier.weight(1f)) { Text(tr(language, "Cancel", "Cancelar")) }
             Button(onClick = {
                 if (name.isNotBlank() && support.contains('@') && timezone.contains('/')) {
-                    MultiTenantStore.saveSettings(actor, name, support, timezone); saved = true
+                    if (SafeLabApi.isMock) {
+                        MultiTenantStore.saveSettings(actor, name, support, timezone); saved = true
+                    }
                 }
             }, modifier = Modifier.weight(1f)) { Text(tr(language, "Save", "Guardar")) }
         }
+        if (!SafeLabApi.isMock) Text(tr(language, "Editing platform settings requires a backend endpoint and is disabled in API mode.",
+            "La configuración de plataforma requiere un endpoint del backend y está deshabilitada en modo API."),
+            color = MaterialTheme.colorScheme.error)
         if (saved) Text(tr(language, "Changes saved", "Cambios guardados"), color = MaterialTheme.colorScheme.primary)
     }
 }

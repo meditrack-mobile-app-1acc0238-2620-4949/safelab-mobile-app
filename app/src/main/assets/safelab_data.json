@@ -100,7 +100,10 @@
         "asset-006",
         "sen-002",
         "sen-004",
-        "sen-006"
+        "sen-006",
+        "asset-001",
+        "asset-003",
+        "asset-005"
       ],
       "age": null,
       "city": "Huancayo",
@@ -278,7 +281,9 @@
       ],
       "resourceIds": [
         "asset-008",
-        "sen-008"
+        "sen-008",
+        "asset-007",
+        "asset-009"
       ],
       "age": null,
       "city": "Trujillo",
@@ -446,7 +451,8 @@
         "fac-pharma"
       ],
       "resourceIds": [
-        "sen-012"
+        "sen-012",
+        "asset-010"
       ],
       "age": null,
       "city": "Arequipa",
@@ -802,7 +808,8 @@
       "responsible": "Andrea Torres",
       "status": "compliant",
       "scope": "clinical-laboratory",
-      "organizationId": "org-andes"
+      "organizationId": "org-andes",
+      "responsibleUserId": "00000000-0000-4000-8000-000000000102"
     },
     {
       "id": "asset-002",
@@ -815,7 +822,8 @@
       "responsible": "Andrea Torres",
       "status": "critical",
       "scope": "clinical-laboratory",
-      "organizationId": "org-andes"
+      "organizationId": "org-andes",
+      "responsibleUserId": "00000000-0000-4000-8000-000000000102"
     },
     {
       "id": "asset-003",
@@ -828,7 +836,8 @@
       "responsible": "Andrea Torres",
       "status": "warning",
       "scope": "clinical-laboratory",
-      "organizationId": "org-andes"
+      "organizationId": "org-andes",
+      "responsibleUserId": "00000000-0000-4000-8000-000000000102"
     },
     {
       "id": "asset-004",
@@ -841,7 +850,8 @@
       "responsible": "Andrea Torres",
       "status": "compliant",
       "scope": "clinical-laboratory",
-      "organizationId": "org-andes"
+      "organizationId": "org-andes",
+      "responsibleUserId": "00000000-0000-4000-8000-000000000102"
     },
     {
       "id": "asset-005",
@@ -854,7 +864,8 @@
       "responsible": "Andrea Torres",
       "status": "compliant",
       "scope": "clinical-laboratory",
-      "organizationId": "org-andes"
+      "organizationId": "org-andes",
+      "responsibleUserId": "00000000-0000-4000-8000-000000000102"
     },
     {
       "id": "asset-006",
@@ -867,7 +878,8 @@
       "responsible": "Andrea Torres",
       "status": "warning",
       "scope": "clinical-laboratory",
-      "organizationId": "org-andes"
+      "organizationId": "org-andes",
+      "responsibleUserId": "00000000-0000-4000-8000-000000000102"
     },
     {
       "id": "asset-007",
@@ -880,7 +892,8 @@
       "responsible": "Gabriel Paredes",
       "status": "compliant",
       "scope": "hospital-pharmacy",
-      "organizationId": "org-gabriel"
+      "organizationId": "org-gabriel",
+      "responsibleUserId": "00000000-0000-4000-8000-000000000108"
     },
     {
       "id": "asset-008",
@@ -893,7 +906,8 @@
       "responsible": "Gabriel Paredes",
       "status": "warning",
       "scope": "hospital-pharmacy",
-      "organizationId": "org-gabriel"
+      "organizationId": "org-gabriel",
+      "responsibleUserId": "00000000-0000-4000-8000-000000000108"
     },
     {
       "id": "asset-009",
@@ -906,7 +920,8 @@
       "responsible": "Gabriel Paredes",
       "status": "critical",
       "scope": "hospital-pharmacy",
-      "organizationId": "org-gabriel"
+      "organizationId": "org-gabriel",
+      "responsibleUserId": "00000000-0000-4000-8000-000000000108"
     },
     {
       "id": "asset-010",
@@ -919,7 +934,8 @@
       "responsible": "Luis Gómez",
       "status": "compliant",
       "scope": "pharmaceutical-operations",
-      "organizationId": "org-farma"
+      "organizationId": "org-farma",
+      "responsibleUserId": "00000000-0000-4000-8000-000000000114"
     }
   ],
   "complianceRules": [

@@ -1,6 +1,14 @@
 package pe.edu.upc.safelab.navigation
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
+import pe.edu.upc.safelab.shared.infrastructure.http.SafeLabApi
+import org.json.JSONObject
+import pe.edu.upc.safelab.boundedcontext.userprofiles.domain.model.validateProfile
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
@@ -30,11 +38,15 @@ import pe.edu.upc.safelab.shared.presentation.layouts.AppShell
 @Composable
 fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
     var user by remember { mutableStateOf<AuthenticatedUser?>(null) }
+    val apiScope = rememberCoroutineScope()
     var language by rememberSaveable { mutableStateOf("EN") }
     var selectedTab by rememberSaveable { mutableStateOf(MobileTab.HOME.name) }
     var moreScreen by rememberSaveable { mutableStateOf<String?>(null) }
     var profileOpen by remember { mutableStateOf(false) }
     var platformBillingOpen by remember { mutableStateOf(false) }
+    var syncInProgress by remember { mutableStateOf(false) }
+    var syncError by remember { mutableStateOf<String?>(null) }
+    val lifecycleOwner = LocalLifecycleOwner.current
     val version = MultiTenantStore.version
 
     androidx.compose.runtime.CompositionLocalProvider(LocalAppLanguage provides language) {
@@ -51,6 +63,29 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
         }
 
         val loggedUser = user ?: return@CompositionLocalProvider
+        // Navigation re-fetches the live snapshot; no logout, timer or WebSocket needed.
+        LaunchedEffect(loggedUser.id, selectedTab, moreScreen, profileOpen, platformBillingOpen) {
+            if (!SafeLabApi.authenticated) return@LaunchedEffect
+            syncInProgress = true
+            try { MultiTenantStore.refreshFromBackend(); syncError = null }
+            catch (ex: Exception) { syncError = ex.message ?: "Error de sincronización" }
+            finally { syncInProgress = false }
+        }
+        // Return from another app or background is an additional refresh trigger.
+        DisposableEffect(lifecycleOwner, loggedUser.id) {
+            val observer = LifecycleEventObserver { _, event ->
+                if (event == Lifecycle.Event.ON_RESUME && SafeLabApi.authenticated) {
+                    apiScope.launch {
+                        syncInProgress = true
+                        try { MultiTenantStore.refreshFromBackend(); syncError = null }
+                        catch (ex: Exception) { syncError = ex.message ?: "Error de sincronización" }
+                        finally { syncInProgress = false }
+                    }
+                }
+            }
+            lifecycleOwner.lifecycle.addObserver(observer)
+            onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
         val actor = MultiTenantStore.user(loggedUser.id) ?: return@CompositionLocalProvider
         val role = actor.optString("role")
         val isPlatformAdmin = role == "platformAdmin"
@@ -58,6 +93,7 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
         val profile = UserProfilesRepository.ensureFor(loggedUser)
 
         fun signOut() {
+            apiScope.launch { try { SafeLabApi.signOut() } catch (_: Exception) {} }
             user = null; selectedTab = MobileTab.HOME.name
             moreScreen = null; profileOpen = false; platformBillingOpen = false
         }
@@ -69,11 +105,25 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
                 selectedTab != MobileTab.HOME.name -> selectedTab = MobileTab.HOME.name
             }
         }
-        fun saveProfile(changes: pe.edu.upc.safelab.boundedcontext.userprofiles.domain.model.ProfileChanges): ProfileSaveResult {
-            val result = UserProfilesRepository.save(profile.userId, changes) { email ->
+        suspend fun saveProfile(changes: pe.edu.upc.safelab.boundedcontext.userprofiles.domain.model.ProfileChanges): ProfileSaveResult {
+            val validation = validateProfile(changes)
+            if (validation != ProfileSaveResult.SUCCESS) return validation
+            if (!SafeLabApi.isMock) {
+                if (!changes.email.equals(profile.email, ignoreCase = true)) return ProfileSaveResult.EMAIL_CHANGE_UNSUPPORTED
+                return try {
+                    val update = JSONObject().put("firstName",changes.firstNames.trim())
+                        .put("lastName",changes.lastNames.trim()).put("phone",changes.phone.trim())
+                        .put("city",changes.city.trim()).put("jobTitle",changes.jobTitle.trim())
+                    val age = changes.age.trim().toIntOrNull()
+                    if (age != null) update.put("age", age)
+                    SafeLabApi.request("PATCH", "/userprofiles/me", update)
+                    MultiTenantStore.refreshFromBackend()
+                    UserProfilesRepository.save(profile.userId, changes) { true }
+                } catch (_: Exception) { ProfileSaveResult.API_ERROR }
+            }
+            return UserProfilesRepository.save(profile.userId, changes) { email ->
                 LocalIdentityAccessRepository().isEmailAvailable(profile.userId, email)
             }
-            return result
         }
         val toggleLanguage = { language = if (language == "EN") "ES" else "EN" }
 
@@ -143,7 +193,19 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
             onProfileClick = { profileOpen = true },
             allowedTabs = allowedTabs
         ) {
-            when {
+            Column {
+                if (syncInProgress) LinearProgressIndicator(Modifier.fillMaxWidth())
+                if (syncError != null) {
+                    TextButton(onClick = {
+                        apiScope.launch {
+                            syncInProgress = true
+                            try { MultiTenantStore.refreshFromBackend(); syncError = null }
+                            catch (ex: Exception) { syncError = ex.message ?: "Error de sincronización" }
+                            finally { syncInProgress = false }
+                        }
+                    }) { Text(tr(language, "Sync failed — retry", "Error de sincronización — reintentar") + ": " + syncError.orEmpty()) }
+                }
+                when {
                 profileOpen -> UserProfileScreen(profile, language, onOpenSubscription = {
                     if (isManager) { profileOpen = false; moreScreen = "billing" }
                 }, onSave = ::saveProfile)
@@ -165,6 +227,7 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
                 else -> BusinessMore(actor, language, onOpen = { id ->
                     if (id == "profile") profileOpen = true else moreScreen = id
                 }, onSignOut = ::signOut)
+                }
             }
         }
     }

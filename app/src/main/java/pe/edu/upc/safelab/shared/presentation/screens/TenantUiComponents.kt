@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -175,6 +176,19 @@ fun RecordCollectionScreen(
     var query by remember(collection, organizationId) { mutableStateOf("") }
     var selected by remember(collection, organizationId) { mutableStateOf<JSONObject?>(null) }
     var selectedStatus by remember(collection, organizationId) { mutableStateOf("all") }
+    var editing by remember(collection, organizationId) { mutableStateOf<JSONObject?>(null) }
+    var deleting by remember(collection, organizationId) { mutableStateOf<JSONObject?>(null) }
+    var actionError by remember(collection, organizationId) { mutableStateOf("") }
+    var busy by remember(collection, organizationId) { mutableStateOf(false) }
+    val actionScope = rememberCoroutineScope()
+    val managePermission = when (collection) {
+        "assets" -> "assets.manage"
+        "sensors" -> "sensors.configure"
+        "maintenanceRecords" -> "maintenance.manage"
+        else -> ""
+    }
+    val canEdit = managePermission.isNotBlank() && MultiTenantStore.can(actor, managePermission)
+    val canDelete = canEdit && collection in listOf("assets", "sensors")
     val states = all.map { it.optString("status") }.filter { it.isNotBlank() }.distinct()
     val filtered = all.filter { row ->
         row.toString().contains(query, ignoreCase = true) &&
@@ -215,10 +229,37 @@ fun RecordCollectionScreen(
                 Column(horizontalAlignment = Alignment.End) {
                     val state = row.optString("status").ifBlank { row.optString("connection") }
                     if (state.isNotBlank()) StatusPill(state, language, collection)
-                    Text("›", color = MaterialTheme.colorScheme.primary)
+                    val actions = if (compact) emptyList() else availableRecordActions(collection, row, actor)
+                    if (actions.isNotEmpty()) {
+                        var menuOpen by remember { mutableStateOf(false) }
+                        Box {
+                            TextButton(onClick = { menuOpen = true }) { Text(tr(language, "Actions", "Acciones")) }
+                            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                                actions.forEach { (key, label) ->
+                                    DropdownMenuItem(text = { Text(tr(language, label.first, label.second)) }, onClick = {
+                                        menuOpen = false
+                                        when (key) {
+                                            "edit" -> editing = row
+                                            "delete" -> deleting = row
+                                            else -> actionScope.launch {
+                                                busy = true
+                                                try {
+                                                    if (!MultiTenantStore.performRecordActionRemote(collection, row, actor, key))
+                                                        throw IllegalStateException(tr(language, "Operation not permitted", "Operación no permitida"))
+                                                    actionError = ""
+                                                } catch (ex: Exception) { actionError = ex.message ?: "HTTP error" }
+                                                finally { busy = false }
+                                            }
+                                        }
+                                    })
+                                }
+                            }
+                        }
+                    } else Text("›", color = MaterialTheme.colorScheme.primary)
                 }
             })
         }
+        if (actionError.isNotBlank()) Text(actionError, color = MaterialTheme.colorScheme.error)
         if (shown.isEmpty()) Text(tr(language, "No matching records", "Sin registros coincidentes"),
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (!compact) OutlinedButton(onClick = {
@@ -237,6 +278,62 @@ fun RecordCollectionScreen(
         }) { Text(tr(language, "Export CSV", "Exportar CSV")) }
     }
     RecordDetailDialog(collection, selected, language) { selected = null }
+    if (editing != null) RecordCrudEditor(editing!!, collection, actor, language) { editing = null }
+    if (deleting != null) {
+        val record = deleting!!
+        AlertDialog(onDismissRequest = { if (!busy) deleting = null },
+            title = { Text(tr(language, "Delete record?", "¿Eliminar registro?")) },
+            text = { Text(rowTitle(collection, record) + " — " + tr(language,
+                "This action is permanent. Linked resources may prevent deletion.",
+                "Esta acción es permanente. Recursos vinculados pueden impedir la eliminación.")) },
+            confirmButton = { TextButton(enabled = !busy, onClick = {
+                busy = true
+                actionScope.launch {
+                    try {
+                        if (!MultiTenantStore.deleteRecordRemote(collection, record.optString("id"), actor))
+                            throw IllegalStateException(tr(language, "Action not permitted", "Operación no permitida"))
+                        actionError = ""; deleting = null
+                    } catch (ex: Exception) { actionError = ex.message ?: "HTTP error"; deleting = null }
+                    finally { busy = false }
+                }
+            }) { Text(tr(language, "Delete", "Eliminar")) } },
+            dismissButton = { TextButton(enabled = !busy, onClick = { deleting = null }) {
+                Text(tr(language, "Cancel", "Cancelar"))
+            } })
+    }
+}
+
+/** The server, not the UI, always makes the final authorization decision. */
+private fun availableRecordActions(collection: String, row: JSONObject, actor: JSONObject): List<Pair<String, Pair<String, String>>> {
+    val actions = mutableListOf<Pair<String, Pair<String, String>>>()
+    fun add(key: String, en: String, es: String) { actions.add(key to (en to es)) }
+    fun can(permission: String) = MultiTenantStore.can(actor, permission)
+    val status = row.optString("status")
+    when (collection) {
+        "assets" -> if (can("assets.manage")) {
+            add("edit", "Edit", "Editar"); add("delete", "Delete", "Eliminar")
+        }
+        "sensors" -> if (can("sensors.configure")) {
+            add("edit", "Configure / reading", "Configurar / lectura"); add("delete", "Delete", "Eliminar")
+        }
+        "maintenanceRecords" -> if (can("maintenance.manage")) add("edit", "Edit maintenance", "Editar mantenimiento")
+        "alerts" -> {
+            if (status == "active" && can("alerts.acknowledge")) add("acknowledge", "Acknowledge", "Reconocer")
+            if (status !in listOf("resolved", "closed") && can("incidents.resolve")) add("resolve", "Resolve alert", "Resolver alerta")
+            if (status in listOf("active", "acknowledged") && can("incidents.create")) add("escalate", "Escalate", "Escalar")
+        }
+        "incidents" -> if (can("incidents.resolve")) {
+            if (status == "open") add("investigate", "Investigate", "Investigar")
+            if (status in listOf("open", "investigating", "in_progress")) add("resolve", "Resolve incident", "Resolver incidente")
+            if (status == "resolved") add("close", "Close incident", "Cerrar incidente")
+        }
+        "complianceRules" -> if (can("compliance.manage")) add("toggle",
+            if (status == "active") "Pause rule" else "Activate rule",
+            if (status == "active") "Pausar regla" else "Activar regla")
+        "notifications" -> if (row.optBoolean("unread") && can("incidents.view"))
+            add("mark-read", "Mark read", "Marcar como leída")
+    }
+    return actions
 }
 
 /** Same invoice numbers, dates and amounts as Vue. */
