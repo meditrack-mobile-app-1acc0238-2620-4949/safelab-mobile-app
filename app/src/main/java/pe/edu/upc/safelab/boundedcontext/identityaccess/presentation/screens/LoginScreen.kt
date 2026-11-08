@@ -31,6 +31,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,6 +48,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import pe.edu.upc.safelab.R
 import pe.edu.upc.safelab.boundedcontext.identityaccess.data.repository.AuthenticationResult
 import pe.edu.upc.safelab.boundedcontext.identityaccess.data.repository.LocalIdentityAccessRepository
@@ -68,6 +70,8 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     val repository = remember { LocalIdentityAccessRepository() }
+    val scope = rememberCoroutineScope()
+    var signingIn by remember { mutableStateOf(false) }
 
     AuthContainer(modifier = modifier, showFlask = true) {
         AuthTopActions(language, isDarkTheme, onLanguageToggle, onThemeToggle)
@@ -157,6 +161,10 @@ fun LoginScreen(
 
                 Button(
                     onClick = {
+                        if (signingIn) return@Button
+                        signingIn = true
+                        scope.launch {
+                        try {
                         when (val result = repository.authenticate(identifier, password)) {
                             is AuthenticationResult.Success -> {
                                 errorMessage = null
@@ -169,6 +177,9 @@ fun LoginScreen(
                                     "Esta cuenta está pendiente de activación. Verifica tu correo y completa el flujo de activación."
                                 )
                             }
+                            is AuthenticationResult.NetworkError -> {
+                                errorMessage = result.message
+                            }
                             AuthenticationResult.InvalidCredentials -> {
                                 errorMessage = tr(
                                     language,
@@ -177,7 +188,10 @@ fun LoginScreen(
                                 )
                             }
                         }
+                        } finally { signingIn = false }
+                        }
                     },
+                    enabled = !signingIn,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(54.dp),

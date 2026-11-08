@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -74,17 +75,37 @@ fun BusinessRecords(actor: JSONObject, language: String, section: String) {
         else -> emptyList()
     }
     var current by remember(section) { mutableStateOf(data.firstOrNull()?.first.orEmpty()) }
-    var showAll by remember(section) { mutableStateOf(false) }
+    val refreshScope = rememberCoroutineScope()
+    var refreshing by remember(section) { mutableStateOf(false) }
+    var refreshError by remember(section) { mutableStateOf("") }
+    LaunchedEffect(section, current) {
+        try { MultiTenantStore.refreshFromBackend(); refreshError = "" }
+        catch (ex: Exception) { refreshError = ex.message ?: "Sync error" }
+    }
     LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { PageBanner(data.firstOrNull { it.first == current }?.second.orEmpty(),
             tr(language, "Records from your authorized facilities and equipment.",
                 "Registros de las instalaciones y equipos autorizados.")) }
+        item {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(enabled = !refreshing, onClick = {
+                    refreshScope.launch {
+                        refreshing = true
+                        try { MultiTenantStore.refreshFromBackend(); refreshError = "" }
+                        catch (ex: Exception) { refreshError = ex.message ?: "Sync error" }
+                        finally { refreshing = false }
+                    }
+                }) { Text(tr(language, "Refresh data", "Actualizar datos")) }
+                if (refreshing) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+            }
+            if (refreshError.isNotBlank()) Text(refreshError, color = MaterialTheme.colorScheme.error)
+        }
         if (data.size > 1) item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 data.forEach { (key, title) ->
-                    if (key == current) Button(onClick = { current = key; showAll = false }, modifier = Modifier.fillMaxWidth()) {
+                    if (key == current) Button(onClick = { current = key }, modifier = Modifier.fillMaxWidth()) {
                         Text(title)
-                    } else OutlinedButton(onClick = { current = key; showAll = false }, modifier = Modifier.fillMaxWidth()) {
+                    } else OutlinedButton(onClick = { current = key }, modifier = Modifier.fillMaxWidth()) {
                         Text(title)
                     }
                 }
@@ -92,8 +113,7 @@ fun BusinessRecords(actor: JSONObject, language: String, section: String) {
         }
         if (current.isNotBlank()) item {
             RecordCollectionScreen(language, current,
-                data.firstOrNull { it.first == current }?.second.orEmpty(), actor, compact = !showAll,
-                onOpenAll = { showAll = true })
+                data.firstOrNull { it.first == current }?.second.orEmpty(), actor, compact = false)
         }
         if (section == "remote" && MultiTenantStore.can(actor, "actuation.execute")) {
             item { RemoteActionPanel(actor, language) }
@@ -107,39 +127,62 @@ fun BusinessRecords(actor: JSONObject, language: String, section: String) {
 
 @Composable
 private fun AlertActionPanel(actor: JSONObject, language: String) {
+    val scope = rememberCoroutineScope()
+    var apiError by remember { mutableStateOf("") }
     val alerts = MultiTenantStore.visibleItems("alerts", actor).filter { it.optString("status") == "active" }
     if (!MultiTenantStore.can(actor, "alerts.acknowledge") || alerts.isEmpty()) return
     Text(tr(language, "Acknowledge alerts", "Reconocer alertas"), fontWeight = FontWeight.Bold)
     alerts.forEach { record ->
         InfoCard(rowTitle("alerts", record), record.optString("severity"), onClick = {
-            MultiTenantStore.mutateRecord("alerts", record.optString("id"), "status", "acknowledged", actor)
+            scope.launch {
+                try { MultiTenantStore.acknowledgeAlertRemote(record.optString("id"), actor); apiError = "" }
+                catch (ex: Exception) { apiError = ex.message ?: "API error" }
+            }
         }, trailing = {
             Text(tr(language, "Acknowledge", "Reconocer"), color = MaterialTheme.colorScheme.primary)
         })
     }
+    if (apiError.isNotBlank()) Text(apiError, color = MaterialTheme.colorScheme.error)
 }
 
 @Composable
 private fun RemoteActionPanel(actor: JSONObject, language: String) {
+    val scope = rememberCoroutineScope()
+    var apiError by remember { mutableStateOf("") }
     var confirmId by remember { mutableStateOf<String?>(null) }
+    var pendingCommand by remember { mutableStateOf("START") }
     val available = MultiTenantStore.visibleItems("actuators", actor)
         .filter { it.optString("status") == "online" && it.optString("safetyState") == "enabled" }
     if (available.isEmpty()) return
     Text(tr(language, "Authorized remote commands", "Comandos remotos autorizados"), fontWeight = FontWeight.Bold)
     available.forEach { record ->
         InfoCard(record.optString("name"), tr(language, "Confirm before simulating a command", "Confirmar antes de simular un comando"),
-            onClick = { confirmId = record.optString("id") })
+            onClick = { confirmId = record.optString("id"); pendingCommand = "START" })
     }
     if (confirmId != null) AlertDialog(onDismissRequest = { confirmId = null },
         title = { Text(tr(language, "Simulate remote command?", "¿Simular comando remoto?")) },
-        text = { Text(tr(language, "This action changes local demonstration records only.",
-            "Esta acción modifica únicamente los registros locales de prueba.")) },
+        text = { Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+            Text(tr(language, "This is a simulated API command, not a hardware action.",
+                "Este es un comando simulado de API, no una acción sobre equipos físicos."))
+            listOf("START", "STOP", "RESET").forEach { command ->
+                FilterChip(selected = pendingCommand == command, onClick = { pendingCommand = command },
+                    label = { Text(command) })
+            }
+        } },
         confirmButton = { TextButton(onClick = {
             val id = confirmId!!
-            MultiTenantStore.simulateCommand(actor, id, "START")
+            scope.launch {
+                try {
+                    if (!MultiTenantStore.executeCommandRemote(id, actor, pendingCommand))
+                        throw IllegalStateException(tr(language, "Not allowed", "No autorizado"))
+                    apiError = ""
+                }
+                catch (ex: Exception) { apiError = ex.message ?: "API error" }
+            }
             confirmId = null
         }) { Text(tr(language, "Confirm", "Confirmar")) } },
         dismissButton = { TextButton(onClick = { confirmId = null }) { Text(tr(language, "Cancel", "Cancelar")) } })
+    if (apiError.isNotBlank()) Text(apiError, color = MaterialTheme.colorScheme.error)
 }
 
 @Composable
@@ -173,6 +216,8 @@ fun BusinessMore(actor: JSONObject, language: String, onOpen: (String) -> Unit, 
 /** Small input forms with the same allowed operations as the web, using local data only. */
 @Composable
 private fun BusinessEntryForms(actor: JSONObject, language: String, section: String) {
+    val scope = rememberCoroutineScope()
+    var saving by remember { mutableStateOf(false) }
     val options = when (section) {
         "sensors" -> listOf("sensors" to "sensors.configure")
         "equipment" -> listOf("maintenanceRecords" to "maintenance.manage")
@@ -187,6 +232,7 @@ private fun BusinessEntryForms(actor: JSONObject, language: String, section: Str
     var editing by remember(section) { mutableStateOf(false) }
     var name by remember(section) { mutableStateOf("") }
     var note by remember(section) { mutableStateOf("") }
+    var assignedEmployeeId by remember(section) { mutableStateOf<String?>(null) }
     var message by remember { mutableStateOf("") }
     val facility = MultiTenantStore.arrayStrings(actor.optJSONArray("facilityIds")).firstOrNull().orEmpty()
     val title = when (collection) {
@@ -202,6 +248,22 @@ private fun BusinessEntryForms(actor: JSONObject, language: String, section: Str
             label = { Text(tr(language, "Name or title", "Nombre o título")) })
         OutlinedTextField(note, { note = it }, Modifier.fillMaxWidth(),
             label = { Text(tr(language, "Description or notes", "Descripción u observaciones")) })
+        if (collection == "assets" && actor.optString("role") == "organizationAdmin") {
+            // Solo IDs de usuarios activos de la misma empresa autorizados para la sede.
+            val employeeChoices = MultiTenantStore.employees(actor.optString("organizationId"))
+                .filter { it.optString("status") == "active" &&
+                    (MultiTenantStore.arrayStrings(it.optJSONArray("facilityIds")).let { ids ->
+                        ids.isEmpty() || facility in ids }) }
+            Text(tr(language, "Responsible employee", "Empleado responsable"),
+                style = MaterialTheme.typography.titleSmall)
+            FilterChip(selected = assignedEmployeeId == null, onClick = { assignedEmployeeId = null },
+                label = { Text(tr(language, "Unassigned", "Sin asignar")) })
+            employeeChoices.forEach { employee ->
+                val id = employee.optString("id")
+                FilterChip(selected = assignedEmployeeId == id, onClick = { assignedEmployeeId = id },
+                    label = { Text(employee.optString("fullName")) })
+            }
+        }
         Button(onClick = {
             if (name.isBlank() || facility.isBlank()) {
                 message = tr(language, "Enter a name and select an assigned facility.",
@@ -222,16 +284,25 @@ private fun BusinessEntryForms(actor: JSONObject, language: String, section: Str
                             put("equipmentId", MultiTenantStore.visibleItems("assets", actor).firstOrNull()?.optString("id") ?: "") }
                         "incidents" -> { put("title", name.trim()); put("description", note.trim())
                             put("code", "INC-NEW"); put("severity", "warning") }
-                        "assets" -> { put("name", name.trim()); put("category", "Cold Storage"); put("location", note.trim()) }
+                        "assets" -> { put("name", name.trim()); put("category", "Cold Storage"); put("location", note.trim())
+                            val employeeId = if (actor.optString("role") == "organizationAdmin") assignedEmployeeId else actor.optString("id")
+                            if (!employeeId.isNullOrBlank()) put("responsibleUserId", employeeId)
+                        }
                         "reports" -> { put("title", name.trim()); put("type", "Operational"); put("format", "CSV") }
                     }
                 }
-                if (MultiTenantStore.addRecord(collection, actor, fields)) {
-                    name = ""; note = ""; editing = false
-                    message = tr(language, "Record saved", "Registro guardado")
-                } else message = tr(language, "Unable to save this record", "No se pudo guardar el registro")
+                saving = true
+                scope.launch {
+                    try {
+                        if (MultiTenantStore.addRecordRemote(collection, actor, fields)) {
+                            name = ""; note = ""; assignedEmployeeId = null; editing = false
+                            message = tr(language, "Record saved", "Registro guardado")
+                        } else message = tr(language, "Unable to save this record", "No se pudo guardar el registro")
+                    } catch (ex: Exception) { message = ex.message ?: "Error de SafeLab API" }
+                    finally { saving = false }
+                }
             }
-        }) { Text(tr(language, "Save", "Guardar")) }
+        }, enabled = !saving) { Text(tr(language, "Save", "Guardar")) }
         TextButton(onClick = { editing = false }) { Text(tr(language, "Cancel", "Cancelar")) }
     }
     if (message.isNotBlank()) Text(message, color = MaterialTheme.colorScheme.primary)
