@@ -12,14 +12,20 @@ android {
         applicationId = "pe.edu.upc.safelab"
         minSdk = 28
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "2.5.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/api/v1\"")
+            buildConfigField("boolean", "USE_LOCAL_MOCKS", "false")
+        }
         release {
+            buildConfigField("String", "API_BASE_URL", "\"https://example.invalid/api/v1\"")
+            buildConfigField("boolean", "USE_LOCAL_MOCKS", "false")
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -38,6 +44,7 @@ android {
     }
 
     buildFeatures {
+        buildConfig = true
         compose = true
     }
 }
@@ -51,6 +58,8 @@ dependencies {
     implementation(libs.androidx.ui.graphics)
     implementation(libs.androidx.ui.tooling.preview)
     implementation(libs.androidx.material3)
+    // Soporta PATCH, POST, PUT y errores HTTP con un cliente probado en Android.
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 
     testImplementation(libs.junit)
 

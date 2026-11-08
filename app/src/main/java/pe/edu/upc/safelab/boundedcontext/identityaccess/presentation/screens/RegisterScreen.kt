@@ -5,6 +5,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
+import org.json.JSONObject
+import pe.edu.upc.safelab.shared.infrastructure.http.SafeLabApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -41,7 +44,9 @@ fun RegisterScreen(
     var showPassword by remember { mutableStateOf(false) }
     var message by remember { mutableStateOf("") }
     var assignedUsername by remember { mutableStateOf<String?>(null) }
-    val invited = MultiTenantStore.invitation(invitation)
+    val scope = rememberCoroutineScope()
+    var saving by remember { mutableStateOf(false) }
+    val invited = if (SafeLabApi.isMock) MultiTenantStore.invitation(invitation) else null
 
     AuthContainer(modifier = modifier) {
         AuthTopActions(language, isDarkTheme, onLanguageToggle, onThemeToggle)
@@ -122,7 +127,7 @@ fun RegisterScreen(
                     val names = Regex("^[\\p{L} ]{2,70}$")
                     val emailRegex = Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")
                     val passwordRegex = Regex("^(?=.*[A-Za-z])(?=.*[0-9])(?=.*[@%&$])[A-Za-z0-9@%&$]{10,}$")
-                    val emailToCheck = if (type == "company") email else invited?.optString("email").orEmpty()
+                    val emailToCheck = if (type == "company") email else "invited@safelab.test"
                     when {
                         !names.matches(first.trim()) || !names.matches(last.trim()) ->
                             message = tr(language, "Enter valid names (letters only).", "Ingresa nombres válidos (solo letras).")
@@ -130,20 +135,38 @@ fun RegisterScreen(
                         !emailRegex.matches(emailToCheck) -> message = tr(language, "Invalid email.", "Correo inválido.")
                         !passwordRegex.matches(password) || confirmation != password ->
                             message = tr(language, "Check the password rules and confirmation.", "Verifica las reglas y confirmación de contraseña.")
-                        type == "invitation" && invited == null -> message = tr(language, "Invalid or expired invitation.", "Invitación inválida o vencida.")
+                        type == "invitation" && invitation.isBlank() -> message = tr(language, "Enter the invitation code.", "Ingresa el código de invitación.")
                         type == "company" && (ruc.length != 11 || company.trim().length < 4 || !emailRegex.matches(corporateEmail)) ->
                             message = tr(language, "Review the company details, RUC and corporate email.",
                                 "Verifica la empresa, el RUC y el correo corporativo.")
                         else -> {
-                            val username = if (type == "company") MultiTenantStore.registerCompany(
-                                company, ruc, segment, corporateEmail, first, last, phone, email, password
-                            ) else MultiTenantStore.registerEmployee(invitation, first, last, phone, password)
-                            if (username == null) message = tr(language, "Registration could not be completed. Check your details.",
-                                "No se pudo completar el registro. Verifica tus datos.")
-                            else assignedUsername = username
+                            saving = true
+                            scope.launch {
+                                try {
+                                    if (SafeLabApi.isMock) {
+                                        assignedUsername = if (type == "company") MultiTenantStore.registerCompany(
+                                            company, ruc, segment, corporateEmail, first, last, phone, email, password
+                                        ) else MultiTenantStore.registerEmployee(invitation, first, last, phone, password)
+                                    } else {
+                                        val path = if (type == "company") "/auth/register/company" else "/auth/register/invitation"
+                                        val body = JSONObject().apply {
+                                            put("firstName", first.trim()); put("lastName", last.trim()); put("phone", phone)
+                                            put("password", password)
+                                            if (type == "company") {
+                                                put("companyName", company.trim());put("ruc",ruc);put("segment",segment)
+                                                put("corporateEmail",corporateEmail);put("email",email)
+                                            } else put("code", invitation.trim())
+                                        }
+                                        val result = SafeLabApi.request("POST", path, body, authorized = false)
+                                        assignedUsername = result.optString("userId", "Pending")
+                                    }
+                                    if (assignedUsername == null) message = tr(language, "Registration could not be completed.", "No se pudo completar el registro.")
+                                } catch(ex: Exception) { message = ex.message ?: "Error de SafeLab API" }
+                                finally { saving = false }
+                            }
                         }
                     }
-                }, modifier = Modifier.fillMaxWidth().height(52.dp)) {
+                }, enabled = !saving, modifier = Modifier.fillMaxWidth().height(52.dp)) {
                     Text(tr(language, "Create account", "Crear cuenta"), fontWeight = FontWeight.Bold)
                 }
                 TextButton(onClick = onBackToLogin, modifier = Modifier.fillMaxWidth()) {
@@ -156,8 +179,8 @@ fun RegisterScreen(
         onDismissRequest = { assignedUsername = null; onBackToLogin() },
         title = { Text(tr(language, "Account pending activation", "Cuenta pendiente de activación")) },
         text = { Text(tr(language,
-            "Your company or employee account requires verification. Username: ",
-            "Tu cuenta empresarial o de empleado requiere verificación. Usuario: ") + assignedUsername) },
+            "Account pending verification. Reference: ",
+            "Cuenta pendiente de verificación. Referencia: ") + assignedUsername) },
         confirmButton = { TextButton(onClick = { assignedUsername = null; onBackToLogin() }) {
             Text(tr(language, "Continue", "Continuar"))
         }}

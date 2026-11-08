@@ -26,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import pe.edu.upc.safelab.R
 import pe.edu.upc.safelab.shared.infrastructure.data.MultiTenantStore
 import pe.edu.upc.safelab.boundedcontext.userprofiles.domain.model.ProfileChanges
@@ -52,8 +54,10 @@ fun UserProfileScreen(
     profile: UserProfile,
     language: String,
     onOpenSubscription: () -> Unit,
-    onSave: (ProfileChanges) -> ProfileSaveResult
+    onSave: suspend (ProfileChanges) -> ProfileSaveResult
 ) {
+    val scope = rememberCoroutineScope()
+    var saving by remember(profile.userId) { mutableStateOf(false) }
     var editing by remember(profile.userId) { mutableStateOf(false) }
     var firstNames by remember(profile.userId) { mutableStateOf(profile.firstNames) }
     var lastNames by remember(profile.userId) { mutableStateOf(profile.lastNames) }
@@ -200,7 +204,9 @@ fun UserProfileScreen(
                             Button(
                                 modifier = Modifier.weight(1f),
                                 onClick = {
-                                    val result = onSave(ProfileChanges(
+                                    saving = true
+                                    scope.launch {
+                                    val result = try { onSave(ProfileChanges(
                                         firstNames = firstNames,
                                         lastNames = lastNames,
                                         email = email,
@@ -208,7 +214,8 @@ fun UserProfileScreen(
                                         age = age,
                                         city = city,
                                         jobTitle = jobTitle
-                                    ))
+                                    )) } catch (_: Exception) { ProfileSaveResult.API_ERROR }
+                                    saving = false
                                     if (result == ProfileSaveResult.SUCCESS) {
                                         editing = false
                                         error = false
@@ -217,7 +224,9 @@ fun UserProfileScreen(
                                         error = true
                                         message = profileErrorMessage(result, language)
                                     }
-                                }
+                                    }
+                                },
+                                enabled = !saving
                             ) { Text(tr(language, "Save", "Guardar")) }
                         }
                     } else {
@@ -326,6 +335,8 @@ private fun profileErrorMessage(result: ProfileSaveResult, language: String): St
     ProfileSaveResult.INVALID_AGE -> tr(language, "Age must be between 1 and 120, or left blank.", "La edad debe estar entre 1 y 120, o dejarse vacía.")
     ProfileSaveResult.INVALID_CITY -> tr(language, "City must contain letters only (2–60 characters).", "La ciudad debe contener solo letras (2–60 caracteres).")
     ProfileSaveResult.INVALID_JOB_TITLE -> tr(language, "Job title must contain letters only (2–60 characters).", "El cargo debe contener solo letras (2–60 caracteres).")
+    ProfileSaveResult.EMAIL_CHANGE_UNSUPPORTED -> tr(language, "Email changes are not enabled in this API version.", "El cambio de correo no está habilitado en esta versión de la API.")
+    ProfileSaveResult.API_ERROR -> tr(language, "SafeLab API is not available. No data was saved.", "No se pudo conectar a SafeLab API. No se guardaron los datos.")
     ProfileSaveResult.NOT_FOUND -> tr(language, "Profile not found.", "Perfil no encontrado.")
     ProfileSaveResult.SUCCESS -> tr(language, "Changes saved.", "Cambios guardados.")
 }

@@ -1,6 +1,8 @@
 package pe.edu.upc.safelab.shared.infrastructure.data
 
 import android.content.Context
+import pe.edu.upc.safelab.shared.infrastructure.http.SafeLabApi
+import pe.edu.upc.safelab.shared.infrastructure.http.SafeLabHttpException
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
@@ -9,6 +11,8 @@ import org.json.JSONObject
 import pe.edu.upc.safelab.boundedcontext.identityaccess.domain.model.AuthenticatedUser
 import pe.edu.upc.safelab.boundedcontext.identityaccess.domain.service.UserIdentifierGenerator
 import java.util.UUID
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 
 /**
  * Same fictional records and stable IDs as the Vue frontend's server/db.json.
@@ -23,6 +27,7 @@ object MultiTenantStore {
     private lateinit var languages: Map<String, JSONObject>
     var version by mutableIntStateOf(0)
         private set
+    private val refreshLock = Mutex()
 
     fun initialize(appContext: Context) {
         if (::data.isInitialized) return
@@ -37,13 +42,228 @@ object MultiTenantStore {
         languages = mapOf("EN" to JSONObject(asset("strings_en.json")), "ES" to JSONObject(asset("strings_es.json")))
     }
 
+    /** Sustituye el snapshot local por los datos que el backend autorizó. */
+    suspend fun refreshFromBackend() {
+        if (SafeLabApi.isMock || !SafeLabApi.authenticated) return
+        refreshLock.withLock {
+            if (!SafeLabApi.authenticated) return@withLock
+            val snapshot = SafeLabApi.bootstrap()
+            data = snapshot
+            version++ // Invalida pantallas Compose de todos los BC.
+        }
+    }
+
+    /** Crear de forma remota. Nunca confirma el cambio antes del HTTP 201. */
+    suspend fun addRecordRemote(collection: String, actor: JSONObject, fields: JSONObject): Boolean {
+        if (SafeLabApi.isMock) return addRecord(collection, actor, fields)
+        val endpoint = when (collection) {
+            "assets" -> "/facilityassets/assets"
+            "sensors" -> "/sensormonitoring/sensors"
+            "incidents" -> "/alertsincidents/incidents"
+            "maintenanceRecords" -> "/equipmentmaintenance/records"
+            "reports" -> "/reportinganalytics/reports"
+            else -> return false
+        }
+        val body = JSONObject(fields.toString())
+        // Los formularios móviles anteriores no pedían facilityId; la API sí lo exige.
+        val assignedFacility = visibleItems("facilities", actor).firstOrNull()?.optString("id").orEmpty()
+        if (collection in listOf("assets", "incidents", "sensors") &&
+            body.optString("facilityId").isBlank()) {
+            if (assignedFacility.isBlank()) throw IllegalStateException("No tienes una sede autorizada para registrar este recurso")
+            body.put("facilityId", assignedFacility)
+        }
+        if (collection == "assets") {
+            if (!body.has("category")) body.put("category", "Cold Storage")
+            if (!body.has("storageUnit")) body.put("storageUnit", "Local")
+            // El ID es la autoridad; el nombre solo sirve para compatibilidad con los mocks.
+            if (!body.has("responsibleUserId") && actor.optString("role") != "organizationAdmin")
+                body.put("responsibleUserId", actor.optString("id"))
+            if (!body.has("responsible")) body.put("responsible",
+                if (actor.optString("role") == "organizationAdmin") "" else actor.optString("fullName"))
+        }
+        if (collection == "sensors") {
+            val asset = visibleItems("assets", actor).firstOrNull() ?:
+                throw IllegalStateException("Se necesita un equipo autorizado para registrar un sensor")
+            body.put("assetId", asset.optString("id"))
+            body.put("facilityId", asset.optString("facilityId"))
+            body.put("code", "SEN-" + UUID.randomUUID().toString().take(8).uppercase())
+        }
+        if (collection == "maintenanceRecords") {
+            body.put("responsible", actor.optString("fullName"))
+            body.put("status", body.optString("status", "scheduled"))
+        }
+        try {
+            SafeLabApi.request("POST", endpoint, body)
+            refreshFromBackend()
+            return true
+        } catch (ex: Exception) { throw ex }
+    }
+
+    /** Updates only the collections for which Spring Boot exposes a scoped PATCH. */
+    suspend fun updateRecordRemote(collection: String, id: String, actor: JSONObject, fields: JSONObject): Boolean {
+        val required = when (collection) {
+            "assets" -> "assets.manage"
+            "sensors" -> "sensors.configure"
+            "maintenanceRecords" -> "maintenance.manage"
+            else -> return false
+        }
+        if (!can(actor, required) || visibleItems(collection, actor).none { it.optString("id") == id })
+            return false
+        if (SafeLabApi.isMock) {
+            val existing = find(collection, id) ?: return false
+            for (key in fields.keys()) existing.put(key, fields.opt(key))
+            changed(); return true
+        }
+        val endpoint = when (collection) {
+            "assets" -> "/facilityassets/assets/$id"
+            "sensors" -> "/sensormonitoring/sensors/$id"
+            "maintenanceRecords" -> "/equipmentmaintenance/records/$id"
+            else -> return false
+        }
+        val payload = JSONObject(fields.toString())
+        // Immutable fields must never be submitted by the editor.
+        payload.remove("id"); payload.remove("organizationId"); payload.remove("createdAt")
+        if (collection == "assets" && payload.has("responsibleUserId") &&
+            actor.optString("role") != "organizationAdmin") return false
+        SafeLabApi.request("PATCH", endpoint, payload)
+        refreshFromBackend()
+        return true
+    }
+
+    /** Deletion is supported in the API for assets and sensors only. */
+    suspend fun deleteRecordRemote(collection: String, id: String, actor: JSONObject): Boolean {
+        val required = when (collection) {
+            "assets" -> "assets.manage"
+            "sensors" -> "sensors.configure"
+            else -> return false
+        }
+        if (!can(actor, required) || visibleItems(collection, actor).none { it.optString("id") == id })
+            return false
+        if (SafeLabApi.isMock) return false // Mock UI does not pretend to delete remotely.
+        val endpoint = if (collection == "assets") "/facilityassets/assets/$id" else "/sensormonitoring/sensors/$id"
+        SafeLabApi.request("DELETE", endpoint)
+        refreshFromBackend()
+        return true
+    }
+
+    suspend fun updateSensorReadingRemote(id: String, actor: JSONObject, value: Double): Boolean {
+        if (!can(actor, "sensors.configure") || visibleItems("sensors", actor).none { it.optString("id") == id })
+            return false
+        if (SafeLabApi.isMock) return false
+        SafeLabApi.request("PATCH", "/sensormonitoring/sensors/$id/reading", JSONObject().put("value", value))
+        refreshFromBackend()
+        return true
+    }
+
+    /** Match Web operational actions using the same role checks and HTTP routes. */
+    suspend fun performRecordActionRemote(collection: String, record: JSONObject,
+                                          actor: JSONObject, action: String): Boolean {
+        val id = record.optString("id")
+        val org = actor.optString("organizationId")
+        if (record.optString("organizationId") != org && actor.optString("role") != "platformAdmin")
+            return false
+        val permission: String
+        val path: String
+        val body = JSONObject()
+        when (collection to action) {
+            "alerts" to "acknowledge" -> {
+                permission = "alerts.acknowledge"; path = "/alertsincidents/alerts/$id/acknowledge"
+                body.put("notes", "Acknowledged from SafeLab Mobile")
+            }
+            "alerts" to "resolve" -> {
+                permission = "incidents.resolve"; path = "/alertsincidents/alerts/$id/resolve"
+                body.put("notes", "Resolved from SafeLab Mobile")
+            }
+            "alerts" to "escalate" -> {
+                permission = "incidents.create"; path = "/alertsincidents/alerts/$id/escalate"
+                body.put("notes", "Escalated from SafeLab Mobile")
+            }
+            "incidents" to "investigate", "incidents" to "resolve", "incidents" to "close" -> {
+                permission = "incidents.resolve"; path = "/alertsincidents/incidents/$id/$action"
+                body.put("notes", "Changed from SafeLab Mobile: $action")
+            }
+            "complianceRules" to "toggle" -> {
+                permission = "compliance.manage"; path = "/environmentalcompliance/rules/$id"
+                body.put("status", if (record.optString("status") == "active") "paused" else "active")
+            }
+            "notifications" to "mark-read" -> {
+                permission = "incidents.view"; path = "/alertsincidents/notifications/$id/mark-read"
+            }
+            else -> return false
+        }
+        if (!can(actor, permission) || visibleItems(collection, actor).none { it.optString("id") == id })
+            return false
+        if (SafeLabApi.isMock) return false
+        SafeLabApi.request(if (collection == "complianceRules") "PATCH" else "POST", path,
+            if (body.length() == 0) null else body)
+        refreshFromBackend()
+        return true
+    }
+
+    suspend fun acknowledgeAlertRemote(id: String, actor: JSONObject): Boolean {
+        if (SafeLabApi.isMock) {
+            mutateRecord("alerts",id,"status","acknowledged",actor);return true
+        }
+        SafeLabApi.request("POST", "/alertsincidents/alerts/$id/acknowledge",
+            JSONObject().put("notes", "Acknowledged from SafeLab Mobile"))
+        refreshFromBackend();return true
+    }
+
+    suspend fun executeCommandRemote(id: String, actor: JSONObject, command: String = "START"): Boolean {
+        val normalized = command.uppercase()
+        if (normalized !in setOf("START", "STOP", "RESET") || !can(actor,"actuation.execute") ||
+            visibleItems("actuators", actor).none { it.optString("id") == id }) return false
+        if (SafeLabApi.isMock) return simulateCommand(actor,id,normalized)
+        val apiCommand = normalized.lowercase().replaceFirstChar { it.uppercase() }
+        SafeLabApi.request("POST", "/remoteactuation/actuators/$id/commands",
+            JSONObject().put("command", apiCommand))
+        refreshFromBackend();return true
+    }
+
+    suspend fun inviteRemote(manager: JSONObject, email: String, role: String): String? {
+        if (SafeLabApi.isMock) return invite(manager, email, role)
+        val org = manager.optString("organizationId")
+        val body = JSONObject().put("email",email).put("role",role)
+            .put("facilityIds",manager.optJSONArray("facilityIds") ?: JSONArray())
+            .put("resourceIds",JSONArray())
+        val created = SafeLabApi.request("POST", "/identityaccess/organizations/$org/invitations", body)
+        refreshFromBackend()
+        return created.optString("code")
+    }
+
+    suspend fun cancelInvitationRemote(actor: JSONObject, id: String) {
+        if (SafeLabApi.isMock) { cancelInvitation(actor,id);return }
+        SafeLabApi.request("POST", "/identityaccess/organizations/${actor.optString("organizationId")}/invitations/$id/cancel")
+        refreshFromBackend()
+    }
+
+    suspend fun saveEmployeePermissionsRemote(actor: JSONObject, employee: JSONObject, draft: Map<String, Boolean>): Boolean {
+        if (SafeLabApi.isMock) return saveEmployeePermissions(actor,employee,draft)
+        val permissions = JSONArray()
+        draft.filterValues { it }.keys.forEach { permissions.put(it) }
+        SafeLabApi.request("PUT", "/identityaccess/organizations/${actor.optString("organizationId")}/users/${employee.optString("id")}/permissions",
+            JSONObject().put("permissions", permissions))
+        refreshFromBackend(); return true
+    }
+
+    suspend fun saveEmployeeResourcesRemote(actor: JSONObject, employee: JSONObject, resourceIds: List<String>): Boolean {
+        if (SafeLabApi.isMock) return saveEmployeeResources(actor, employee, resourceIds)
+        val facilities = employee.optJSONArray("facilityIds") ?: JSONArray()
+        val resources = JSONArray(); resourceIds.forEach { resources.put(it) }
+        SafeLabApi.request("PATCH", "/identityaccess/organizations/${actor.optString("organizationId")}/users/${employee.optString("id")}/assignments",
+            JSONObject().put("facilityIds", facilities).put("resourceIds", resources))
+        refreshFromBackend();return true
+    }
+
     private fun changed() {
+        if (!SafeLabApi.isMock) { version++; return } // En modo API no guardar writes locales como si fueran remotas.
         context.getSharedPreferences("safelab_multitenant", Context.MODE_PRIVATE)
             .edit().putString("demo_state_v1", data.toString()).apply()
         version++
     }
 
     fun resetDemonstration() {
+        if (!SafeLabApi.isMock) return
         context.getSharedPreferences("safelab_multitenant", Context.MODE_PRIVATE)
             .edit().remove("demo_state_v1").apply()
         context.assets.open("safelab_data.json").bufferedReader().use { data = JSONObject(it.readText()) }
@@ -104,6 +324,8 @@ object MultiTenantStore {
     )
 
     fun can(user: JSONObject, permission: String): Boolean {
+        if (!SafeLabApi.isMock && user.has("effectivePermissions"))
+            return arrayStrings(user.optJSONArray("effectivePermissions")).contains(permission)
         val role = user.optString("role")
         if (role == "platformAdmin") return true
         if (role == "organizationAdmin") {
@@ -120,6 +342,7 @@ object MultiTenantStore {
         .flatMap { it.second }.associateWith { can(user, it) }
 
     fun saveEmployeePermissions(actor: JSONObject, employee: JSONObject, draft: Map<String, Boolean>): Boolean {
+        if (!SafeLabApi.isMock) return false // Debe usar /identityaccess/.../permissions
         if (actor.optString("role") != "organizationAdmin") return false
         if (actor.optString("organizationId") != employee.optString("organizationId")) return false
         if (employee.optString("role") !in listOf("bioclinicalCoordinator", "labTechnician", "pharmaOperationsCoordinator", "pharmaTechnician", "complianceOfficer", "maintenanceOperator")) return false
@@ -136,6 +359,7 @@ object MultiTenantStore {
         data.optJSONObject("platformSettings")?.optString(key)?.takeIf { it.isNotBlank() } ?: default
 
     fun saveSettings(actor: JSONObject, name: String, email: String, timezone: String) {
+        if (!SafeLabApi.isMock) return
         if (actor.optString("role") != "platformAdmin") return
         val settings = data.optJSONObject("platformSettings") ?: JSONObject().also { data.put("platformSettings", it) }
         settings.put("platformName", name); settings.put("supportEmail", email); settings.put("timezone", timezone)
@@ -143,6 +367,7 @@ object MultiTenantStore {
     }
 
     fun saveEmployeeResources(actor: JSONObject, employee: JSONObject, resourceIds: List<String>): Boolean {
+        if (!SafeLabApi.isMock) return false // Debe usar /identityaccess/.../assignments
         if (actor.optString("role") != "organizationAdmin" ||
             actor.optString("organizationId") != employee.optString("organizationId")) return false
         val orgId = actor.optString("organizationId")
@@ -171,6 +396,7 @@ object MultiTenantStore {
     }
 
     fun invite(manager: JSONObject, email: String, role: String): String? {
+        if (!SafeLabApi.isMock) return null // Usar API /invitations
         val orgId = manager.optString("organizationId")
         if (manager.optString("role") != "organizationAdmin" ||
             role !in availableRoles(organization(orgId)?.optString("segment").orEmpty()) ||
@@ -268,6 +494,9 @@ object MultiTenantStore {
         val role = actor.optString("role")
         val orgId = if (role == "platformAdmin") overrideOrganization else actor.optString("organizationId")
         val records = items(collection).filter { orgId.isNullOrBlank() || it.optString("organizationId") == orgId }
+        // In API mode bootstrap has already applied the server's RBAC and resource scope.
+        // Re-filtering with stale/offline mock rules causes different counts in Web vs Android.
+        if (!SafeLabApi.isMock) return records
         if (role == "platformAdmin" || role == "organizationAdmin") return records
         val allowedFacilities = arrayStrings(actor.optJSONArray("facilityIds")).toSet()
         val resourceIds = arrayStrings(actor.optJSONArray("resourceIds")).toSet()
@@ -305,6 +534,7 @@ object MultiTenantStore {
 
     /** All mock writes are company-scoped and require the matching permission. */
     fun addRecord(collection: String, actor: JSONObject, fields: JSONObject): Boolean {
+        if (!SafeLabApi.isMock) return false // Usar addRecordRemote() desde corutina.
         val permission = when (collection) {
             "assets" -> "assets.manage"
             "sensors" -> "sensors.configure"
@@ -328,6 +558,7 @@ object MultiTenantStore {
     }
 
     fun simulateCommand(actor: JSONObject, actuatorId: String, command: String): Boolean {
+        if (!SafeLabApi.isMock) return false
         if (!can(actor, "actuation.execute")) return false
         val target = visibleItems("actuators", actor).firstOrNull { it.optString("id") == actuatorId } ?: return false
         if (target.optString("status") != "online" || target.optString("safetyState") != "enabled") return false
@@ -346,6 +577,7 @@ object MultiTenantStore {
     }
 
     fun updateUser(id: String, first: String, last: String, phone: String, email: String) {
+        if (!SafeLabApi.isMock) return
         val target = user(id) ?: return
         target.put("firstName", first); target.put("lastName", last)
         target.put("fullName", "$first $last"); target.put("phone", phone)
@@ -364,6 +596,7 @@ object MultiTenantStore {
     }
 
     fun mutateRecord(collection: String, id: String, key: String, newValue: Any, actor: JSONObject) {
+        if (!SafeLabApi.isMock) return
         val record = find(collection, id) ?: return
         if (!visibleItems(collection, actor).any { it.optString("id") == id }) return
         record.put(key, newValue)

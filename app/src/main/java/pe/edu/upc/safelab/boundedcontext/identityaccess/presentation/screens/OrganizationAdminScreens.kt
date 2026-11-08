@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -19,6 +20,7 @@ import pe.edu.upc.safelab.common.tr
 
 @Composable
 fun OrganizationUsersScreen(manager: JSONObject, language: String) {
+    val scope = rememberCoroutineScope()
     val version = MultiTenantStore.version
     val orgId = manager.optString("organizationId")
     val staff = remember(version, orgId) { MultiTenantStore.employees(orgId) }
@@ -82,7 +84,10 @@ fun OrganizationUsersScreen(manager: JSONObject, language: String) {
                             Column(horizontalAlignment = Alignment.End) {
                                 StatusPill(invite.optString("status"), language)
                                 if (invite.optString("status") == "pending") TextButton(onClick = {
-                                    MultiTenantStore.cancelInvitation(manager, invite.optString("id"))
+                                    scope.launch {
+                                        try { MultiTenantStore.cancelInvitationRemote(manager, invite.optString("id")) }
+                                        catch (_: Exception) { /* error visible al recargar */ }
+                                    }
                                 }) { Text(tr(language, "Cancel", "Cancelar")) }
                             }
                         })
@@ -102,6 +107,7 @@ fun OrganizationUsersScreen(manager: JSONObject, language: String) {
 
 @Composable
 private fun InvitationCreator(manager: JSONObject, language: String) {
+    val scope = rememberCoroutineScope()
     var email by remember { mutableStateOf("") }
     val segment = MultiTenantStore.organization(manager.optString("organizationId"))?.optString("segment").orEmpty()
     val roles = MultiTenantStore.availableRoles(segment)
@@ -122,9 +128,13 @@ private fun InvitationCreator(manager: JSONObject, language: String) {
             }
         }
         Button(onClick = {
-            notice = MultiTenantStore.invite(manager, email, selectedRole)?.let { code ->
-                tr(language, "Invitation created. Code: ", "Invitación creada. Código: ") + code
-            } ?: tr(language, "Invalid email, role or no available seats.", "Correo o rol inválido, o sin cupos disponibles.")
+            scope.launch {
+                try {
+                    notice = MultiTenantStore.inviteRemote(manager, email, selectedRole)?.let { code ->
+                        tr(language, "Invitation created. Code: ", "Invitación creada. Código: ") + code
+                    } ?: tr(language, "Invalid email, role or no available seats.", "Correo o rol inválido, o sin cupos disponibles.")
+                } catch(ex: Exception) { notice = ex.message ?: "Error de SafeLab API" }
+            }
         }) { Text(tr(language, "Create invitation", "Crear invitación")) }
         if (notice.isNotBlank()) Text(notice, style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.primary)
@@ -136,6 +146,7 @@ private fun InvitationCreator(manager: JSONObject, language: String) {
 
 @Composable
 private fun EmployeePermissionEditor(manager: JSONObject, employee: JSONObject, language: String, onClose: () -> Unit) {
+    val scope = rememberCoroutineScope()
     val version = MultiTenantStore.version
     val userId = employee.optString("id")
     val role = employee.optString("role")
@@ -190,8 +201,11 @@ private fun EmployeePermissionEditor(manager: JSONObject, employee: JSONObject, 
                 Text(tr(language, "Cancel", "Cancelar"))
             }
             Button(onClick = {
-                if (MultiTenantStore.saveEmployeePermissions(manager, employee, draft.toMap())) {
-                    notice = tr(language, "Changes saved", "Cambios guardados")
+                scope.launch {
+                    try {
+                        if (MultiTenantStore.saveEmployeePermissionsRemote(manager,employee,draft.toMap()))
+                            notice = tr(language,"Changes saved","Cambios guardados")
+                    } catch(ex: Exception) { notice = ex.message ?: "Error de SafeLab API" }
                 }
             }, enabled = dirty, modifier = Modifier.weight(1f), contentPadding = PaddingValues(8.dp)) {
                 Text(tr(language, "Save", "Guardar"))
@@ -222,6 +236,7 @@ private fun EmployeePermissionEditor(manager: JSONObject, employee: JSONObject, 
 
 @Composable
 private fun ResourceAssignmentEditor(manager: JSONObject, employee: JSONObject, language: String) {
+    val scope = rememberCoroutineScope()
     val orgId = manager.optString("organizationId")
     val resourceOptions = (MultiTenantStore.items("assets") + MultiTenantStore.items("sensors"))
         .filter { it.optString("organizationId") == orgId }
@@ -243,10 +258,14 @@ private fun ResourceAssignmentEditor(manager: JSONObject, employee: JSONObject, 
             }
         }
         Button(onClick = {
-            notice = if (MultiTenantStore.saveEmployeeResources(manager, employee,
-                selected.filterValues { it }.keys.toList()))
-                tr(language, "Assignments saved", "Asignaciones guardadas")
-            else tr(language, "Unable to save assignments", "No se pudieron guardar las asignaciones")
+            scope.launch {
+                try {
+                    notice = if (MultiTenantStore.saveEmployeeResourcesRemote(manager, employee,
+                        selected.filterValues { it }.keys.toList()))
+                        tr(language, "Assignments saved", "Asignaciones guardadas")
+                    else tr(language, "Unable to save assignments", "No se pudieron guardar las asignaciones")
+                } catch(ex: Exception) { notice = ex.message ?: "Error de SafeLab API" }
+            }
         }) { Text(tr(language, "Save assignments", "Guardar asignaciones")) }
         if (notice.isNotBlank()) Text(notice)
     }
