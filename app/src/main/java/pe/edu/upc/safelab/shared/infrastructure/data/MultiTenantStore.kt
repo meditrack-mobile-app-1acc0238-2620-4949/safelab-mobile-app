@@ -47,7 +47,10 @@ object MultiTenantStore {
         if (SafeLabApi.isMock || !SafeLabApi.authenticated) return
         refreshLock.withLock {
             if (!SafeLabApi.authenticated) return@withLock
+            val revision = SafeLabApi.sessionRevision
             val snapshot = SafeLabApi.bootstrap()
+            // Una respuesta de una sesión anterior nunca sustituye el tenant actual.
+            if (revision != SafeLabApi.sessionRevision || !SafeLabApi.authenticated) return@withLock
             data = snapshot
             version++ // Invalida pantallas Compose de todos los BC.
         }
@@ -379,6 +382,14 @@ object MultiTenantStore {
         changed()
         return true
     }
+
+    /** Cuentas de personal de una empresa; el gerente no consume cupo ni cuenta como empleado.
+     * La vista GLOBAL de plataforma sigue mostrando gerentes y administradores.
+     */
+    fun visibleOrganizationEmployees(actor: JSONObject, organizationId: String): List<JSONObject> =
+        visibleItems("users", actor, organizationId).filter {
+            it.optString("role") != "organizationAdmin" && it.optString("role") != "platformAdmin"
+        }
 
     fun employees(organizationId: String): List<JSONObject> = items("users").filter {
         it.optString("organizationId") == organizationId && it.optString("role") != "organizationAdmin"

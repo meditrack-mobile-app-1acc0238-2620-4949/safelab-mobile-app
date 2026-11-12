@@ -171,10 +171,13 @@ fun RecordCollectionScreen(
 ) {
     val version = MultiTenantStore.version
     val all = remember(version, collection, organizationId, actor.optString("id")) {
-        MultiTenantStore.visibleItems(collection, actor, organizationId)
+        if (collection == "users" && !organizationId.isNullOrBlank())
+            MultiTenantStore.visibleOrganizationEmployees(actor, organizationId)
+        else MultiTenantStore.visibleItems(collection, actor, organizationId)
     }
     var query by remember(collection, organizationId) { mutableStateOf("") }
     var selected by remember(collection, organizationId) { mutableStateOf<JSONObject?>(null) }
+    val selectedLatest = selected?.optString("id")?.let { id -> all.firstOrNull { it.optString("id") == id } }
     var selectedStatus by remember(collection, organizationId) { mutableStateOf("all") }
     var editing by remember(collection, organizationId) { mutableStateOf<JSONObject?>(null) }
     var deleting by remember(collection, organizationId) { mutableStateOf<JSONObject?>(null) }
@@ -277,7 +280,7 @@ fun RecordCollectionScreen(
             }, tr(language, "Export CSV", "Exportar CSV")))
         }) { Text(tr(language, "Export CSV", "Exportar CSV")) }
     }
-    RecordDetailDialog(collection, selected, language) { selected = null }
+    RecordDetailDialog(collection, selectedLatest, language) { selected = null }
     if (editing != null) RecordCrudEditor(editing!!, collection, actor, language) { editing = null }
     if (deleting != null) {
         val record = deleting!!

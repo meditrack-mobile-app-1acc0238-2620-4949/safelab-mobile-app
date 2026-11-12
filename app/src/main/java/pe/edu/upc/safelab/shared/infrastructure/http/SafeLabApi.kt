@@ -20,7 +20,9 @@ object SafeLabApi {
         .readTimeout(12, TimeUnit.SECONDS)
         .build()
     private val jsonType = "application/json; charset=utf-8".toMediaType()
-    private var accessToken: String? = null
+    @Volatile private var accessToken: String? = null
+    @Volatile var sessionRevision: Long = 0
+        private set
 
     val authenticated: Boolean get() = !accessToken.isNullOrBlank()
     val isMock: Boolean get() = BuildConfig.USE_LOCAL_MOCKS
@@ -29,12 +31,13 @@ object SafeLabApi {
         val payload = JSONObject().put("identifier", identifier).put("password", password)
         val response = request("POST", "/auth/login", payload, authorized = false)
         accessToken = response.getString("accessToken")
+        sessionRevision++
         return response.getJSONObject("user")
     }
 
     suspend fun signOut() {
         try { if (authenticated) request("POST", "/auth/logout") }
-        finally { accessToken = null }
+        finally { accessToken = null; sessionRevision++ }
     }
 
     suspend fun request(method: String, path: String, body: JSONObject? = null, authorized: Boolean = true): JSONObject =

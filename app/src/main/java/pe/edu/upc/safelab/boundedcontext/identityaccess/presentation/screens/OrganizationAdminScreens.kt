@@ -15,6 +15,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import org.json.JSONObject
 import pe.edu.upc.safelab.shared.infrastructure.data.MultiTenantStore
+import pe.edu.upc.safelab.shared.infrastructure.http.SafeLabApi
 import pe.edu.upc.safelab.shared.presentation.screens.*
 import pe.edu.upc.safelab.common.tr
 
@@ -27,6 +28,13 @@ fun OrganizationUsersScreen(manager: JSONObject, language: String) {
     var selectedId by remember { mutableStateOf<String?>(null) }
     var section by remember { mutableStateOf("employees") }
     val selectedUser = staff.firstOrNull { it.optString("id") == selectedId }
+    // La navegación interna de Usuarios/Permisos/Invitaciones no cambia el tab principal.
+    LaunchedEffect(orgId, section, selectedId) {
+        if (SafeLabApi.authenticated) {
+            try { MultiTenantStore.refreshFromBackend() }
+            catch (_: Exception) { /* Conserva último snapshot; reintento automático en primer plano. */ }
+        }
+    }
 
     // A separate mobile view keeps the 21 switches away from the employee list.
     // No new BC or duplicate permission logic is needed.
@@ -151,7 +159,15 @@ private fun EmployeePermissionEditor(manager: JSONObject, employee: JSONObject, 
     val userId = employee.optString("id")
     val role = employee.optString("role")
     val saved = remember(version, userId) { MultiTenantStore.employeePermissions(employee) }
-    val draft = remember(version, userId) { mutableStateMapOf<String, Boolean>().apply { putAll(saved) } }
+    val draft = remember(userId) { mutableStateMapOf<String, Boolean>().apply { putAll(saved) } }
+    var lastServerValues by remember(userId) { mutableStateOf(saved) }
+    LaunchedEffect(userId, saved) {
+        // Si nadie tocó el formulario, incorpora permisos nuevos del servidor.
+        // Si el usuario está editando, NO se pierden sus switches durante el polling.
+        val locallyEdited = lastServerValues.any { (key, value) -> draft[key] != value }
+        if (!locallyEdited) { draft.clear(); draft.putAll(saved) }
+        lastServerValues = saved
+    }
     val grantable = MultiTenantStore.grantable(role)
     val dirty = saved.any { (permission, active) -> draft[permission] != active }
     var notice by remember(userId) { mutableStateOf("") }
@@ -240,10 +256,23 @@ private fun ResourceAssignmentEditor(manager: JSONObject, employee: JSONObject, 
     val orgId = manager.optString("organizationId")
     val resourceOptions = (MultiTenantStore.items("assets") + MultiTenantStore.items("sensors"))
         .filter { it.optString("organizationId") == orgId }
-    val current = MultiTenantStore.arrayStrings(employee.optJSONArray("resourceIds"))
-    val selected = remember(employee.optString("id")) { mutableStateMapOf<String, Boolean>().apply {
+    val current = MultiTenantStore.arrayStrings(employee.optJSONArray("resourceIds")).toSet()
+    val employeeId = employee.optString("id")
+    val selected = remember(employeeId) { mutableStateMapOf<String, Boolean>().apply {
         resourceOptions.forEach { this[it.optString("id")] = it.optString("id") in current }
     } }
+    var lastServerSelection by remember(employeeId) { mutableStateOf(current) }
+    val availableIds = resourceOptions.map { it.optString("id") }.toSet()
+    LaunchedEffect(employeeId, current, availableIds) {
+        val unsaved = (lastServerSelection + selected.keys).any { id ->
+            (selected[id] == true) != (id in lastServerSelection)
+        }
+        if (!unsaved) {
+            selected.clear()
+            availableIds.forEach { id -> selected[id] = id in current }
+        }
+        lastServerSelection = current
+    }
     var notice by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
     OutlinedButton(onClick = { expanded = !expanded }, modifier = Modifier.fillMaxWidth()) {

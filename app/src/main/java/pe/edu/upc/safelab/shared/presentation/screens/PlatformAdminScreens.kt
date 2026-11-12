@@ -30,6 +30,15 @@ fun PlatformAdminEntryScreen(
     var orgId by remember { mutableStateOf<String?>(null) }
     var orgTab by remember { mutableStateOf("overview") }
     var fullCollection by remember { mutableStateOf<String?>(null) }
+    var refreshError by remember { mutableStateOf("") }
+    // La pantalla de plataforma tiene navegación interna propia; esas pestañas no
+    // cambian el tab principal de SafeLabApp y antes no disparaban una petición.
+    LaunchedEffect(tab, orgId, orgTab, fullCollection) {
+        if (SafeLabApi.authenticated) {
+            try { MultiTenantStore.refreshFromBackend(); refreshError = "" }
+            catch (ex: Exception) { refreshError = ex.message ?: "Error de sincronización" }
+        }
+    }
     val title = when {
         fullCollection != null -> tr(language, "All records", "Todos los registros")
         orgId != null -> MultiTenantStore.orgName(orgId!!)
@@ -65,6 +74,9 @@ fun PlatformAdminEntryScreen(
         LazyColumn(Modifier.fillMaxSize().padding(inner), contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(13.dp)) {
             val version = MultiTenantStore.version
+            if (refreshError.isNotBlank()) item {
+                Text(refreshError, color = MaterialTheme.colorScheme.error)
+            }
             if (fullCollection != null) {
                 val collection = fullCollection!!
                 item { PageBanner(title, tr(language, "Search, inspect and export records.", "Busca, consulta y exporta registros.")) }
@@ -76,7 +88,7 @@ fun PlatformAdminEntryScreen(
                 item { PageBanner(organization?.optString("name").orEmpty(),
                     tr(language, "Organization details", "Detalle de la empresa")) }
                 item {
-                    val total = MultiTenantStore.visibleItems("users", actor, orgId).size
+                    val total = MultiTenantStore.visibleOrganizationEmployees(actor, orgId!!).size
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         MetricTile(tr(language, "Users", "Usuarios"), total.toString(),
                             tr(language, "Registered accounts", "Cuentas registradas"), Color(0xFF4F35E8), Modifier.weight(1f))
@@ -104,7 +116,7 @@ fun PlatformAdminEntryScreen(
                 when (orgTab) {
                     "overview" -> {
                         item { OrganizationSummary(orgId!!, language) }
-                        item { InfoCard(tr(language, "Users", "Usuarios"), "${MultiTenantStore.visibleItems("users", actor, orgId).size}",
+                        item { InfoCard(tr(language, "Users", "Usuarios"), "${MultiTenantStore.visibleOrganizationEmployees(actor, orgId!!).size}",
                             onClick = { orgTab = "users" }) }
                         item { InfoCard(tr(language, "Subscription", "Suscripción"),
                             MultiTenantStore.subscription(orgId!!)?.optString("plan").orEmpty(), onClick = { orgTab = "billing" }) }

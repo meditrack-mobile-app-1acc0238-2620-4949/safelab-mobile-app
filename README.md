@@ -1,10 +1,64 @@
-# SafeLab v2.5.0 RC3 — Sincronización móvil y paridad API (2026-11-07)
+# SafeLab Mobile v2.5.0 — RC4 de sincronización y consistencia Web ↔ Android (2026-11-12)
+
+> **Entrega para pruebas locales antes de publicar.** Esta RC4 continúa la RC3 y no
+> cambia el contrato del backend ni las migraciones Flyway. No se ha verificado
+> una compilación Android o una ejecución real en el emulador desde este entorno;
+> esas pruebas deben realizarse en Android Studio con el backend v2.5.0 encendido.
+
+## ¿Qué se corrigió en esta revisión?
+
+1. **Sin botón «Actualizar datos».** Se eliminó el botón de las vistas operativas. Las
+   listas se actualizan al entrar/cambiar de módulo o submódulo, al recuperar
+   primer plano y **cada 15 segundos mientras la app está activa**, sin cerrar sesión.
+   La recarga se ejecuta con `GET /api/v1/integration/bootstrap` y las reglas de
+   permisos del backend: no se implementa WebSocket ni push instantáneo.
+2. **Administrador de plataforma:** cambiar Resumen, Empresas, Actividad, Más,
+   abrir una empresa, pasar entre General/Usuarios/Dispositivos/Pagos/Operaciones
+   o abrir «Ver todos» activa una nueva consulta. Este flujo antes no estaba
+   enlazado con la recarga general de la navegación de Android.
+3. **Usuarios por organización:** el KPI y la lista de personal de cada empresa
+   excluyen al `organizationAdmin` (gerente) y al administrador global. Ejemplo:
+   6 empleados + 1 gerente = **6 empleados** en el detalle de la empresa, pero
+   **7 cuentas** si se consulta el total de cuentas incluyendo al gerente.
+   El total global de cuentas del administrador de plataforma no cambia.
+4. **Perfil del usuario:** después del bootstrap se reconcilia la información
+   local con `users` del backend. Si el perfil está siendo editado, no se borran
+   los cambios todavía no guardados.
+5. **Permisos y asignaciones:** la recarga automática no reinicializa los switches
+   y casillas con modificaciones pendientes; si el formulario no tiene cambios,
+   incorpora las modificaciones nuevas del servidor.
+6. **Aislamiento:** el cliente descarta respuestas antiguas si la sesión cambió
+   durante la petición HTTP. El servidor sigue siendo la autoridad para tenant,
+   permisos y recursos; no se agregaron permisos nuevos a los usuarios.
+7. **Detalle abierto:** la ficha de un registro vuelve a consultar su dato actual
+   dentro del snapshot más reciente (si desapareció o perdió permiso, no
+   conserva la versión antigua en pantalla).
+
+## Ejecución local (Android Studio)
+
+1. Inicia PostgreSQL 18 (`safelab_db`) y Spring Boot **backend-v2.5.0** con perfil
+   `postgres` en `localhost:8080` (no ejecutar JSON Server del frontend).
+2. Abre este directorio como proyecto Gradle en Android Studio, sincroniza y
+   ejecuta la variante `debug` en Android Emulator. `10.0.2.2:8080` corresponde
+   al host de tu PC **únicamente para el emulador**.
+3. Inicia sesión con los roles de prueba; cambia de módulos y verifica cambios
+   desde Web, sin pulsar botones de actualización ni cerrar sesión.
+4. Para probar un **Android físico**, cambia la URL del build debug por la IP LAN
+   de la PC y configura firewall y red; el backend desplegado utilizará HTTPS
+   (se prepara en v3.0.0). El valor `https://example.invalid/api/v1` del build
+   `release` es un marcador y **NO está listo para publicar**.
+
+**Pruebas completas:** [`docs/SYNC_PARITY_QA_RC4.md`](docs/SYNC_PARITY_QA_RC4.md).
+
+---
+
+# Histórico RC3 — Sincronización móvil y paridad API (2026-11-07)
 
 > **Candidata de validación local.** No crear todavía un tag estable: primero aprobar `npm run build`, compilación Android, tests Maven y pruebas reales PostgreSQL.
 
 ## Incidencias corregidas respecto de RC2
 
-- **Mobile:** `GET /api/v1/integration/bootstrap` se vuelve a consultar al cambiar módulo/pestaña o submódulo, y al recuperar el primer plano. Hay un botón **Actualizar datos** y un mensaje de error con opción de reintento; **ya no hace falta cerrar sesión** para obtener cambios de Web. No se implementaron WebSockets ni sincronización push instantánea.
+- **Mobile:** `GET /api/v1/integration/bootstrap` se vuelve a consultar al cambiar módulo/pestaña o submódulo, y al recuperar el primer plano. RC3 tenía un botón **Actualizar datos** (eliminado en RC4) y un mensaje de error con opción de reintento; **ya no hace falta cerrar sesión** para obtener cambios de Web. No se implementaron WebSockets ni sincronización push instantánea.
 - **Mobile:** las colecciones de **activos** y **sensores** ofrecen editar y eliminar, y **mantenimiento** ofrece editar, cuando el token tiene el permiso correspondiente. El formulario de activos incluye nombre, categoría, sede, ubicación, estado, fecha y responsable existente por ID (solo el gerente). Sensores permiten configuración de umbrales y envío de lectura; eliminaciones piden confirmación y respetan las FK.
 - **Mobile:** acciones del backend para reconocer/resolver/escalar alertas, investigar/resolver/cerrar incidentes y activar/pausar reglas de cumplimiento, de acuerdo con los permisos. Se conserva el alta de recursos, invitaciones y asignaciones de RC2.
 - **Web + API + Mobile:** los permisos efectivos se publican en el bootstrap autenticado, en vez de que cada interfaz los adivine desde valores simulados. El backend sigue validando permisos en cada endpoint. El backend limita el permiso implícito del gerente a su catálogo oficial y evita recursos sin asignación para roles técnicos.

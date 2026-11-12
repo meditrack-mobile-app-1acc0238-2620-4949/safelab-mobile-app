@@ -6,6 +6,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.isActive
 import pe.edu.upc.safelab.shared.infrastructure.http.SafeLabApi
 import org.json.JSONObject
 import pe.edu.upc.safelab.boundedcontext.userprofiles.domain.model.validateProfile
@@ -47,7 +50,7 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
     var syncInProgress by remember { mutableStateOf(false) }
     var syncError by remember { mutableStateOf<String?>(null) }
     val lifecycleOwner = LocalLifecycleOwner.current
-    val version = MultiTenantStore.version
+    val version = MultiTenantStore.version // Observa cambios remotos en TODOS los roles y BC.
 
     androidx.compose.runtime.CompositionLocalProvider(LocalAppLanguage provides language) {
         if (user == null) {
@@ -85,6 +88,23 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
             }
             lifecycleOwner.lifecycle.addObserver(observer)
             onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        }
+        // Refresh de seguridad mientras la app está en primer plano: cubre listas, paneles,
+        // perfil, suscripción y pantallas que permanecen abiertas sin cambiar de módulo.
+        // No se mantiene conexión WebSocket ni se descarga nada en segundo plano.
+        LaunchedEffect(loggedUser.id, lifecycleOwner) {
+            while (currentCoroutineContext().isActive) {
+                delay(15_000L)
+                if (SafeLabApi.authenticated &&
+                    lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+                    try { MultiTenantStore.refreshFromBackend(); syncError = null }
+                    catch (ex: Exception) { syncError = ex.message ?: "Error de sincronización" }
+                }
+            }
+        }
+        // El perfil no debe conservar un snapshot separado del usuario en PostgreSQL.
+        LaunchedEffect(loggedUser.id, version) {
+            if (!SafeLabApi.isMock) UserProfilesRepository.syncFromBackend(loggedUser.id)
         }
         val actor = MultiTenantStore.user(loggedUser.id) ?: return@CompositionLocalProvider
         val role = actor.optString("role")

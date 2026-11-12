@@ -1,3 +1,13 @@
+# SafeLab Mobile v2.5.0 RC4 — sincronización y paridad de conteos (2026-11-12)
+
+- No se modifica el número visible `versionName = "2.5.0"` para esta RC local.
+- Se elimina el botón manual de refresco; navegación, primer plano y polling
+  de 15 s recuperan datos para todos los roles y BC.
+- Detalle de organización: empleados sin gerente; global conserva cuentas.
+- Perfiles, permisos y asignaciones se reconcilian sin descartar borradores.
+- La API continúa en Spring Boot v2.5.0 y PostgreSQL con las mismas migraciones.
+- Validar en Android Studio antes de considerar esta versión estable.
+
 # SafeLab v2.5.0 RC3 — API local (sincronización y paridad)
 
 Validación pendiente. Conservar tags anteriores. V1–V4 Flyway inmutables.
