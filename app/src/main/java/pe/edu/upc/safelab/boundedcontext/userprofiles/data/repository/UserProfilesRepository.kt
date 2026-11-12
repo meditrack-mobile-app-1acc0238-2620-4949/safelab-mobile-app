@@ -18,6 +18,24 @@ object UserProfilesRepository {
 
     fun current(userId: String): UserProfile? = profiles[userId]
 
+    /** Reconciliación tras GET /integration/bootstrap. El servidor es la única fuente de
+     * verdad en modo API; los drafts abiertos en Compose se preservan aparte.
+     */
+    fun syncFromBackend(userId: String) {
+        val server = MultiTenantStore.user(userId) ?: return
+        val previous = profiles[userId] ?: return
+        val synced = previous.copy(
+            firstNames = server.optString("firstName", previous.firstNames).ifBlank { previous.firstNames },
+            lastNames = server.optString("lastName", previous.lastNames).ifBlank { previous.lastNames },
+            email = server.optString("email", previous.email).ifBlank { previous.email },
+            phone = server.optString("phone", previous.phone),
+            city = server.optString("city", previous.city),
+            jobTitle = server.optString("jobTitle", previous.jobTitle),
+            age = if (server.has("age") && !server.isNull("age")) server.optString("age") else previous.age
+        )
+        if (synced != previous) profiles[userId] = synced
+    }
+
     // Called when an existing account signs in. Provides reasonable administrator defaults.
     fun ensureFor(user: AuthenticatedUser): UserProfile {
         val source = MultiTenantStore.user(user.id)

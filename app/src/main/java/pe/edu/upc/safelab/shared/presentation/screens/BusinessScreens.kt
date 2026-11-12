@@ -75,8 +75,6 @@ fun BusinessRecords(actor: JSONObject, language: String, section: String) {
         else -> emptyList()
     }
     var current by remember(section) { mutableStateOf(data.firstOrNull()?.first.orEmpty()) }
-    val refreshScope = rememberCoroutineScope()
-    var refreshing by remember(section) { mutableStateOf(false) }
     var refreshError by remember(section) { mutableStateOf("") }
     LaunchedEffect(section, current) {
         try { MultiTenantStore.refreshFromBackend(); refreshError = "" }
@@ -86,19 +84,9 @@ fun BusinessRecords(actor: JSONObject, language: String, section: String) {
         item { PageBanner(data.firstOrNull { it.first == current }?.second.orEmpty(),
             tr(language, "Records from your authorized facilities and equipment.",
                 "Registros de las instalaciones y equipos autorizados.")) }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(enabled = !refreshing, onClick = {
-                    refreshScope.launch {
-                        refreshing = true
-                        try { MultiTenantStore.refreshFromBackend(); refreshError = "" }
-                        catch (ex: Exception) { refreshError = ex.message ?: "Sync error" }
-                        finally { refreshing = false }
-                    }
-                }) { Text(tr(language, "Refresh data", "Actualizar datos")) }
-                if (refreshing) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
-            }
-            if (refreshError.isNotBlank()) Text(refreshError, color = MaterialTheme.colorScheme.error)
+        // Recarga automática al entrar o cambiar de submódulo; sin botón manual.
+        if (refreshError.isNotBlank()) item {
+            Text(refreshError, color = MaterialTheme.colorScheme.error)
         }
         if (data.size > 1) item {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {

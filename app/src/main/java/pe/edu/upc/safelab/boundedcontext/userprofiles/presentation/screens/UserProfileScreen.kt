@@ -23,6 +23,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -68,6 +69,18 @@ fun UserProfileScreen(
     var jobTitle by remember(profile.userId) { mutableStateOf(profile.jobTitle) }
     var message by remember(profile.userId) { mutableStateOf<String?>(null) }
     var error by remember(profile.userId) { mutableStateOf(false) }
+
+    LaunchedEffect(profile) {
+        if (!editing && !saving) {
+            firstNames = profile.firstNames
+            lastNames = profile.lastNames
+            email = profile.email
+            phone = profile.phone
+            age = profile.age
+            city = profile.city
+            jobTitle = profile.jobTitle
+        }
+    }
 
     fun loadCurrentValues() {
         firstNames = profile.firstNames
