@@ -13,18 +13,18 @@ android {
         minSdk = 28
         targetSdk = 35
         versionCode = 3
-        versionName = "2.5.0"
+        versionName = "2.5.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         debug {
-            buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:8080/api/v1\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://safelab-platform-api.onrender.com/api/v1\"")
             buildConfigField("boolean", "USE_LOCAL_MOCKS", "false")
         }
         release {
-            buildConfigField("String", "API_BASE_URL", "\"https://example.invalid/api/v1\"")
+            buildConfigField("String", "API_BASE_URL", "\"https://safelab-platform-api.onrender.com/api/v1\"")
             buildConfigField("boolean", "USE_LOCAL_MOCKS", "false")
             isMinifyEnabled = false
             proguardFiles(
