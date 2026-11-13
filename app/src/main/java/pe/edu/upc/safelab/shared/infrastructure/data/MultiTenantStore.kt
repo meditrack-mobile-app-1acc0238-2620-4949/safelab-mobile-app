@@ -42,17 +42,33 @@ object MultiTenantStore {
         languages = mapOf("EN" to JSONObject(asset("strings_en.json")), "ES" to JSONObject(asset("strings_es.json")))
     }
 
-    /** Sustituye el snapshot local por los datos que el backend autorizó. */
+    /** Lectura explícita: espera su turno para garantizar el bootstrap inicial y el CRUD. */
     suspend fun refreshFromBackend() {
         if (SafeLabApi.isMock || !SafeLabApi.authenticated) return
-        refreshLock.withLock {
-            if (!SafeLabApi.authenticated) return@withLock
-            val revision = SafeLabApi.sessionRevision
-            val snapshot = SafeLabApi.bootstrap()
-            // Una respuesta de una sesión anterior nunca sustituye el tenant actual.
-            if (revision != SafeLabApi.sessionRevision || !SafeLabApi.authenticated) return@withLock
+        refreshLock.withLock { loadAuthorizedSnapshot() }
+    }
+
+    /** Lectura automática: evita acumular solicitudes mientras Render está lento. */
+    suspend fun refreshFromBackendIfIdle(): Boolean {
+        if (SafeLabApi.isMock || !SafeLabApi.authenticated) return false
+        if (!refreshLock.tryLock()) return false
+        return try {
+            loadAuthorizedSnapshot()
+            true
+        } finally {
+            refreshLock.unlock()
+        }
+    }
+
+    private suspend fun loadAuthorizedSnapshot() {
+        if (!SafeLabApi.authenticated) return
+        val revision = SafeLabApi.sessionRevision
+        val snapshot = SafeLabApi.bootstrap()
+        // Una respuesta tardía nunca reemplaza los datos de una sesión distinta.
+        if (revision != SafeLabApi.sessionRevision || !SafeLabApi.authenticated) return
+        if (!::data.isInitialized || snapshot.toString() != data.toString()) {
             data = snapshot
-            version++ // Invalida pantallas Compose de todos los BC.
+            version++ // Solo recomponer pantallas cuando los datos cambien.
         }
     }
 

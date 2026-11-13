@@ -4,12 +4,13 @@ import pe.edu.upc.safelab.boundedcontext.identityaccess.domain.model.Authenticat
 import pe.edu.upc.safelab.shared.infrastructure.data.MultiTenantStore
 import pe.edu.upc.safelab.shared.infrastructure.http.SafeLabApi
 import pe.edu.upc.safelab.shared.infrastructure.http.SafeLabHttpException
+import kotlinx.coroutines.CancellationException
 
 sealed class AuthenticationResult {
     data class Success(val user: AuthenticatedUser): AuthenticationResult()
     data object PendingActivation: AuthenticationResult()
     data object InvalidCredentials: AuthenticationResult()
-    data class NetworkError(val message: String): AuthenticationResult()
+    data class NetworkError(val cause: Throwable): AuthenticationResult()
 }
 
 data class RegistrationRequest(
@@ -34,18 +35,29 @@ class LocalIdentityAccessRepository {
             if (account.optString("status") != "active") return AuthenticationResult.PendingActivation
             return AuthenticationResult.Success(MultiTenantStore.asAuthenticatedUser(account))
         }
+        var loginCompleted = false
         return try {
             val user = SafeLabApi.signIn(identifier.trim(), password)
+            loginCompleted = true
+            // Solo presentar la sesión cuando el bootstrap inicial se haya recibido.
             MultiTenantStore.refreshFromBackend()
             AuthenticationResult.Success(MultiTenantStore.asAuthenticatedUser(user))
+        } catch (cancelled: CancellationException) {
+            // Salir a otra pantalla no debe dejar un token parcial.
+            SafeLabApi.clearLocalSession()
+            throw cancelled
         } catch (error: SafeLabHttpException) {
-            when (error.status) {
-                401 -> AuthenticationResult.InvalidCredentials
-                403 -> AuthenticationResult.PendingActivation
-                else -> AuthenticationResult.NetworkError(error.message)
+            SafeLabApi.clearLocalSession()
+            when {
+                !loginCompleted && error.status == 401 -> AuthenticationResult.InvalidCredentials
+                !loginCompleted && error.status == 403 -> AuthenticationResult.PendingActivation
+                else -> AuthenticationResult.NetworkError(error)
             }
         } catch (error: Exception) {
-            AuthenticationResult.NetworkError(error.message ?: "SafeLab API no disponible")
+            // Si login fue exitoso pero bootstrap falla, permitir otro intento
+            // sin borrar los datos de Android ni conservar el token fallido.
+            SafeLabApi.clearLocalSession()
+            AuthenticationResult.NetworkError(error)
         }
     }
 

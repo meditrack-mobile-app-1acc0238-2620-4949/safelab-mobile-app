@@ -1,3 +1,21 @@
+# SafeLab Mobile v2.5.3 — recuperación de conexión (AV2)
+
+Parche sobre la entrega recibida como `safelab-mobile-app-av2-v2.5.2`.
+Validación de compilación y de APK en Android Studio pendiente.
+
+- Se distingue el error de DNS, el tiempo de espera y la indisponibilidad del servidor.
+- OkHttp tiene `connectTimeout=15 s`, `readTimeout=75 s` y `callTimeout=90 s` para contemplar el arranque lento del backend.
+- GET dispone de un único reintento acotado frente a errores transitorios o HTTP 502/503/504. Las solicitudes POST/PUT/PATCH/DELETE no se reintentan automáticamente.
+- La pantalla de ingreso no confirma la sesión si falla el `GET /integration/bootstrap`; descarta el token parcial, permite volver a intentar con las credenciales conservadas y no requiere borrar los datos de la app.
+- La sincronización automática omite solicitudes redundantes cuando ya hay una lectura en curso; se conserva el refresco al navegar, al volver a primer plano y el polling existente.
+- Al cerrar sesión, el token local se invalida inmediatamente sin esperar a la red.
+- Se mantiene el mismo endpoint de Render, permisos, temas, módulos y UI. No se implementa cierre por inactividad (pendiente para el Trabajo Final).
+- `versionCode=4`, `versionName=2.5.3`. Para actualizar la APK instalada, compilarla con la misma clave de firma o desinstalar la anterior solo si cambia la firma.
+
+**Comprobaciones necesarias en dispositivo físico y emulador:** iniciar sesión con API activa; probar con Wi-Fi desactivado; reintentar sin borrar datos; restaurar Internet; validar servidor lento en Render; verificar sincronización y cierre de sesión; comprobar que las peticiones de escritura no se repiten automáticamente.
+
+---
+
 # SafeLab Mobile v2.5.0 RC4 — sincronización y paridad de conteos (2026-11-12)
 
 - No se modifica el número visible `versionName = "2.5.0"` para esta RC local.

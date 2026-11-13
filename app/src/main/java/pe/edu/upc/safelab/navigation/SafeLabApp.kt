@@ -10,6 +10,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import pe.edu.upc.safelab.shared.infrastructure.http.SafeLabApi
+import pe.edu.upc.safelab.shared.infrastructure.http.safeLabErrorMessage
+import kotlinx.coroutines.CancellationException
 import org.json.JSONObject
 import pe.edu.upc.safelab.boundedcontext.userprofiles.domain.model.validateProfile
 import androidx.compose.foundation.layout.*
@@ -70,8 +72,9 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
         LaunchedEffect(loggedUser.id, selectedTab, moreScreen, profileOpen, platformBillingOpen) {
             if (!SafeLabApi.authenticated) return@LaunchedEffect
             syncInProgress = true
-            try { MultiTenantStore.refreshFromBackend(); syncError = null }
-            catch (ex: Exception) { syncError = ex.message ?: "Error de sincronización" }
+            try { if (MultiTenantStore.refreshFromBackendIfIdle()) syncError = null }
+            catch (cancelled: CancellationException) { throw cancelled }
+            catch (ex: Exception) { syncError = safeLabErrorMessage(ex, language) }
             finally { syncInProgress = false }
         }
         // Return from another app or background is an additional refresh trigger.
@@ -80,8 +83,9 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
                 if (event == Lifecycle.Event.ON_RESUME && SafeLabApi.authenticated) {
                     apiScope.launch {
                         syncInProgress = true
-                        try { MultiTenantStore.refreshFromBackend(); syncError = null }
-                        catch (ex: Exception) { syncError = ex.message ?: "Error de sincronización" }
+                        try { if (MultiTenantStore.refreshFromBackendIfIdle()) syncError = null }
+                        catch (cancelled: CancellationException) { throw cancelled }
+                        catch (ex: Exception) { syncError = safeLabErrorMessage(ex, language) }
                         finally { syncInProgress = false }
                     }
                 }
@@ -97,8 +101,9 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
                 delay(15_000L)
                 if (SafeLabApi.authenticated &&
                     lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
-                    try { MultiTenantStore.refreshFromBackend(); syncError = null }
-                    catch (ex: Exception) { syncError = ex.message ?: "Error de sincronización" }
+                    try { if (MultiTenantStore.refreshFromBackendIfIdle()) syncError = null }
+                    catch (cancelled: CancellationException) { throw cancelled }
+                    catch (ex: Exception) { syncError = safeLabErrorMessage(ex, language) }
                 }
             }
         }
@@ -113,9 +118,17 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
         val profile = UserProfilesRepository.ensureFor(loggedUser)
 
         fun signOut() {
-            apiScope.launch { try { SafeLabApi.signOut() } catch (_: Exception) {} }
+            // Limpiar primero el token para no bloquear el cierre por DNS o timeout.
+            // El token anterior se revoca aparte, sin borrar una nueva sesión.
+            val previousToken = SafeLabApi.clearLocalSession()
             user = null; selectedTab = MobileTab.HOME.name
             moreScreen = null; profileOpen = false; platformBillingOpen = false
+            syncError = null; syncInProgress = false
+            if (previousToken != null) apiScope.launch {
+                try { SafeLabApi.revokeSession(previousToken) }
+                catch (cancelled: CancellationException) { throw cancelled }
+                catch (_: Exception) { /* El cierre local ya está completado */ }
+            }
         }
         fun back() {
             when {
@@ -220,7 +233,8 @@ fun SafeLabApp(isDarkTheme: Boolean, onThemeToggle: () -> Unit) {
                         apiScope.launch {
                             syncInProgress = true
                             try { MultiTenantStore.refreshFromBackend(); syncError = null }
-                            catch (ex: Exception) { syncError = ex.message ?: "Error de sincronización" }
+                            catch (cancelled: CancellationException) { throw cancelled }
+                            catch (ex: Exception) { syncError = safeLabErrorMessage(ex, language) }
                             finally { syncInProgress = false }
                         }
                     }) { Text(tr(language, "Sync failed — retry", "Error de sincronización — reintentar") + ": " + syncError.orEmpty()) }
