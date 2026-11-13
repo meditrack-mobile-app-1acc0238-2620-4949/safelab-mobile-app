@@ -54,6 +54,7 @@ import pe.edu.upc.safelab.boundedcontext.identityaccess.data.repository.Authenti
 import pe.edu.upc.safelab.boundedcontext.identityaccess.data.repository.LocalIdentityAccessRepository
 import pe.edu.upc.safelab.boundedcontext.identityaccess.domain.model.AuthenticatedUser
 import pe.edu.upc.safelab.common.tr
+import pe.edu.upc.safelab.shared.infrastructure.http.safeLabErrorMessage
 import pe.edu.upc.safelab.shared.presentation.components.ThemeModeButton
 
 @Composable
@@ -178,7 +179,7 @@ fun LoginScreen(
                                 )
                             }
                             is AuthenticationResult.NetworkError -> {
-                                errorMessage = result.message
+                                errorMessage = safeLabErrorMessage(result.cause, language)
                             }
                             AuthenticationResult.InvalidCredentials -> {
                                 errorMessage = tr(

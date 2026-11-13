@@ -12,8 +12,8 @@ android {
         applicationId = "pe.edu.upc.safelab"
         minSdk = 28
         targetSdk = 35
-        versionCode = 3
-        versionName = "2.5.1"
+        versionCode = 4
+        versionName = "2.5.3"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
